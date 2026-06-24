@@ -41,7 +41,7 @@ DompetGweh membantu Anda melacak keuangan harian secara mandiri, aman (offline-f
 ### 📥 Unduh Langsung (Android)
 
 Bagi Anda yang ingin langsung mencoba aplikasi di HP Android tanpa perlu melakukan build manual di laptop:
-* **Link Download**: **[Unduh DompetGweh APK (via Diawi)](https://i.diawi.com/xrhhan)**
+* **Link Download**: **[Unduh DompetGweh APK (via Diawi)](https://i.diawi.com/48WrnD)**
 * *Buka tautan di atas melalui browser HP Anda atau pindai (scan) QR Code yang tersedia di halaman tersebut untuk menginstal aplikasi secara instan.*
 
 ---
