@@ -1,0 +1,24 @@
+{
+  "name": "DompetGweh - Catat masuknya dikit, keluarnya banyak.",
+  "short_name": "DompetGweh",
+  "description": "A beautiful PWA to track your personal incomes and expenses offline.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050d09",
+  "theme_color": "#050d09",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
