@@ -1,6 +1,12 @@
-# 👛 DompetGweh
+<p align="center">
+  <img src="assets/images/logo.png" alt="DompetGweh Logo" width="150" />
+</p>
 
-> *"Catat masuknya dikit, keluarnya banyak."*
+<h1 align="center">DompetGweh</h1>
+
+<p align="center">
+  <i>"Catat masuknya dikit, keluarnya banyak."</i>
+</p>
 
 **DompetGweh** adalah aplikasi pencatatan keuangan pribadi modern berbasis **Flutter** yang didesain khusus untuk pengguna **Android** dan **iOS**, dengan dukungan platform **Web** & **Windows** untuk pengujian dan pengembangan secara lokal.
 
