@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'DompetGweh',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.light,
+      themeMode: context.watch<TransactionProvider>().themeMode,
       
       // Light Mode (Mint Green & White)
       theme: ThemeData(

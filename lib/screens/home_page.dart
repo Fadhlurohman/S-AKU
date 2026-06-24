@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/transaction_provider.dart';
 import 'tabs/dashboard_tab.dart';
 import 'tabs/add_transaction_tab.dart';
 import 'tabs/history_tab.dart';
@@ -85,7 +87,19 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              color: isDark ? const Color(0xFFF2FAF6) : const Color(0xFF0F2015),
+            ),
+            onPressed: () {
+              context.read<TransactionProvider>().toggleTheme();
+            },
+            tooltip: isDark ? 'Mode Terang' : 'Mode Gelap',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: isDesktop

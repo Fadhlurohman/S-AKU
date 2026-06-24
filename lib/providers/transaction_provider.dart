@@ -7,7 +7,8 @@ class TransactionProvider with ChangeNotifier {
   List<Transaction> _transactions = [];
   double _budgetLimit = 0.0;
   double _initialBalance = 0.0;
-  ThemeMode _themeMode = ThemeMode.dark;
+  bool _isInitialBalanceSet = false;
+  ThemeMode _themeMode = ThemeMode.light;
 
   // Categories definition
   static const List<String> incomeCategories = ['Gaji', 'Lain-lain'];
@@ -22,6 +23,7 @@ class TransactionProvider with ChangeNotifier {
   List<Transaction> get transactions => _transactions;
   double get budgetLimit => _budgetLimit;
   double get initialBalance => _initialBalance;
+  bool get isInitialBalanceSet => _isInitialBalanceSet;
   ThemeMode get themeMode => _themeMode;
 
   TransactionProvider() {
@@ -37,10 +39,13 @@ class TransactionProvider with ChangeNotifier {
 
     // Load initial balance
     _initialBalance = prefs.getDouble('initial_balance') ?? 0.0;
+    
+    // Load if initial balance is set
+    _isInitialBalanceSet = prefs.getBool('is_initial_balance_set') ?? (_initialBalance > 0.0);
 
     // Load theme mode
-    final themeStr = prefs.getString('theme_mode') ?? 'dark';
-    _themeMode = themeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
+    final themeStr = prefs.getString('theme_mode') ?? 'light';
+    _themeMode = themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
 
     // Load transactions
     final txListJson = prefs.getStringList('transactions');
@@ -97,11 +102,33 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Reset monthly budget limit to 0
+  Future<void> resetBudgetLimit() async {
+    _budgetLimit = 0.0;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('budget_limit', 0.0);
+    notifyListeners();
+  }
+
   // Set initial balance
   Future<void> setInitialBalance(double balance) async {
     _initialBalance = balance;
+    _isInitialBalanceSet = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('initial_balance', balance);
+    await prefs.setBool('is_initial_balance_set', true);
+    notifyListeners();
+  }
+
+  // Reset balance to 0 and delete all transactions
+  Future<void> resetBalance() async {
+    _initialBalance = 0.0;
+    _isInitialBalanceSet = false;
+    _transactions.clear();
+    await saveTransactions();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('initial_balance', 0.0);
+    await prefs.setBool('is_initial_balance_set', false);
     notifyListeners();
   }
 

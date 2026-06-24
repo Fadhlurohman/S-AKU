@@ -424,11 +424,15 @@ class _HistoryTabState extends State<HistoryTab> {
           ),
           const SizedBox(height: 16),
           // Transactions List Panel
-          Expanded(
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: isDesktop ? 600 : 450,
+            ),
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Header of the list with counts
@@ -489,7 +493,7 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                     ),
                     const Divider(height: 1),
-                    Expanded(
+                    Flexible(
                       child: filteredTransactions.isEmpty
                           ? _buildEmptyState()
                           : isDesktop
@@ -589,72 +593,91 @@ class _HistoryTabState extends State<HistoryTab> {
 
   // Desktop Responsive Table Layout
   Widget _buildDesktopTable(TransactionProvider provider, List<Transaction> list) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
+    final verticalController = ScrollController();
+    final horizontalController = ScrollController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scrollbarColor = isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.15);
+
+    return RawScrollbar(
+      controller: verticalController,
+      thumbColor: scrollbarColor,
+      radius: const Radius.circular(4),
+      thickness: 4.0,
       child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 700),
-          child: DataTable(
-            columnSpacing: 24.0,
-            horizontalMargin: 16.0,
-            columns: const [
-              DataColumn(label: Text('Tanggal', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Kategori', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Deskripsi', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Nominal', style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
-            ],
-            rows: list.map((tx) {
-              final isIncome = tx.type == 'income';
-              return DataRow(
-                cells: [
-                  DataCell(Text(_dateFormat.format(tx.date))),
-                  DataCell(
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isIncome 
-                            ? const Color(0xFF10B981).withOpacity(0.1) 
-                            : const Color(0xFFF43F5E).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isIncome 
-                              ? const Color(0xFF10B981).withOpacity(0.2) 
-                              : const Color(0xFFF43F5E).withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        tx.category,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                        ),
-                      ),
-                    ),
-                  ),
-                  DataCell(Text(tx.description)),
-                  DataCell(
-                    Text(
-                      "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                      ),
-                    ),
-                  ),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Color(0xFFF43F5E), size: 20),
-                      onPressed: () => _deleteTransaction(provider, tx),
-                      tooltip: 'Hapus Transaksi',
-                    ),
-                  ),
+        controller: verticalController,
+        scrollDirection: Axis.vertical,
+        child: RawScrollbar(
+          controller: horizontalController,
+          thumbColor: scrollbarColor,
+          radius: const Radius.circular(4),
+          thickness: 4.0,
+          child: SingleChildScrollView(
+            controller: horizontalController,
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 700),
+              child: DataTable(
+                columnSpacing: 24.0,
+                horizontalMargin: 16.0,
+                columns: const [
+                  DataColumn(label: Text('Tanggal', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Kategori', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Deskripsi', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Nominal', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
-              );
-            }).toList(),
+                rows: list.map((tx) {
+                  final isIncome = tx.type == 'income';
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(_dateFormat.format(tx.date))),
+                      DataCell(
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isIncome 
+                                ? const Color(0xFF10B981).withOpacity(0.1) 
+                                : const Color(0xFFF43F5E).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isIncome 
+                                  ? const Color(0xFF10B981).withOpacity(0.2) 
+                                  : const Color(0xFFF43F5E).withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            tx.category,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                            ),
+                          ),
+                        ),
+                      ),
+                      DataCell(Text(tx.description)),
+                      DataCell(
+                        Text(
+                          "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Color(0xFFF43F5E), size: 20),
+                          onPressed: () => _deleteTransaction(provider, tx),
+                          tooltip: 'Hapus Transaksi',
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
       ),
@@ -663,114 +686,125 @@ class _HistoryTabState extends State<HistoryTab> {
 
   // Mobile Responsive ListView Layout
   Widget _buildMobileListView(TransactionProvider provider, List<Transaction> list) {
-    return ListView.separated(
-      itemCount: list.length,
-      separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
-      itemBuilder: (context, index) {
-        final tx = list[index];
-        final isIncome = tx.type == 'income';
-        
-        return Dismissible(
-          key: Key(tx.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            color: const Color(0xFFF43F5E),
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20.0),
-            child: const Icon(Icons.delete, color: Colors.white),
-          ),
-          confirmDismiss: (dir) async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Text('Hapus Transaksi'),
-                  content: Text('Apakah Anda yakin ingin menghapus transaksi "${tx.description}"?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF43F5E)),
-                      child: const Text('Hapus', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                );
-              },
-            );
-            return confirm;
-          },
-          onDismissed: (dir) {
-            provider.deleteTransaction(tx.id);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Transaksi "${tx.description}" dihapus'),
-                backgroundColor: const Color(0xFF10B981),
-              ),
-            );
-          },
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: isIncome 
-                  ? const Color(0xFF10B981).withOpacity(0.1) 
-                  : const Color(0xFFF43F5E).withOpacity(0.1),
-              child: Icon(
-                isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-                color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                size: 18,
-              ),
+    final controller = ScrollController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scrollbarColor = isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.15);
+
+    return RawScrollbar(
+      controller: controller,
+      thumbColor: scrollbarColor,
+      radius: const Radius.circular(4),
+      thickness: 4.0,
+      child: ListView.separated(
+        controller: controller,
+        itemCount: list.length,
+        separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
+        itemBuilder: (context, index) {
+          final tx = list[index];
+          final isIncome = tx.type == 'income';
+          
+          return Dismissible(
+            key: Key(tx.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              color: const Color(0xFFF43F5E),
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20.0),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    tx.description,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+            confirmDismiss: (dir) async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text('Hapus Transaksi'),
+                    content: Text('Apakah Anda yakin ingin menghapus transaksi "${tx.description}"?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF43F5E)),
+                        child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  );
+                },
+              );
+              return confirm;
+            },
+            onDismissed: (dir) {
+              provider.deleteTransaction(tx.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Transaksi "${tx.description}" dihapus'),
+                  backgroundColor: const Color(0xFF10B981),
                 ),
-                Text(
-                  "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                  ),
+              );
+            },
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: isIncome 
+                    ? const Color(0xFF10B981).withOpacity(0.1) 
+                    : const Color(0xFFF43F5E).withOpacity(0.1),
+                child: Icon(
+                  isIncome ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                  size: 18,
                 ),
-              ],
-            ),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _dateFormat.format(tx.date),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isIncome 
-                        ? const Color(0xFF10B981).withOpacity(0.08) 
-                        : const Color(0xFFF43F5E).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+              ),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      tx.description,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  child: Text(
-                    tx.category,
+                  Text(
+                    "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
                     style: TextStyle(
-                      fontSize: 10,
                       fontWeight: FontWeight.bold,
+                      fontSize: 14,
                       color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              subtitle: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _dateFormat.format(tx.date),
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isIncome 
+                          ? const Color(0xFF10B981).withOpacity(0.08) 
+                          : const Color(0xFFF43F5E).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      tx.category,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

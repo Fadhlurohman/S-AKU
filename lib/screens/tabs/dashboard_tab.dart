@@ -84,6 +84,81 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
+  // Dialog to confirm reset balance
+  void _showResetBalanceConfirmDialog(BuildContext context, TransactionProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reset Saldo & Transaksi'),
+          content: const Text(
+            'Apakah Anda yakin ingin mereset saldo awal menjadi Rp 0 dan menghapus semua riwayat transaksi? Tindakan ini tidak dapat dibatalkan.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                provider.resetBalance();
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Saldo awal dan semua transaksi berhasil di-reset.'),
+                    backgroundColor: Color(0xFF10B981),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF43F5E),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Reset'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Dialog to confirm reset budget limit
+  void _showResetBudgetConfirmDialog(BuildContext context, TransactionProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reset Batas Anggaran'),
+          content: const Text('Apakah Anda yakin ingin mereset batas anggaran bulanan menjadi Rp 0?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                provider.resetBudgetLimit();
+                _budgetController.clear();
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Batas anggaran bulanan berhasil di-reset.'),
+                    backgroundColor: Color(0xFF10B981),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF43F5E),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Reset'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TransactionProvider>(context);
@@ -120,7 +195,9 @@ class _DashboardTabState extends State<DashboardTab> {
     final double progressPercent = (percent / 100).clamp(0.0, 1.0);
 
     // Sync input text controller with provider value
-    if (_budgetController.text.isEmpty && budgetLimit > 0) {
+    if (budgetLimit == 0.0) {
+      _budgetController.clear();
+    } else if (_budgetController.text.isEmpty && budgetLimit > 0) {
       _budgetController.text = NumberFormat.decimalPattern('id').format(budgetLimit);
     }
 
@@ -144,9 +221,13 @@ class _DashboardTabState extends State<DashboardTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Ringkasan Finansial',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D4236)),
+                style: TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold, 
+                  color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
+                ),
               ),
               IconButton(
                 icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF10B981)),
@@ -176,10 +257,17 @@ class _DashboardTabState extends State<DashboardTab> {
                               "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
                               style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
                             ),
-                            const SizedBox(width: 4),
+                            if (!provider.isInitialBalanceSet) ...[
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () => _showEditInitialBalanceDialog(context, provider),
+                                child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
+                              ),
+                            ],
+                            const Spacer(),
                             GestureDetector(
-                              onTap: () => _showEditInitialBalanceDialog(context, provider),
-                              child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
+                              onTap: () => _showResetBalanceConfirmDialog(context, provider),
+                              child: const Icon(Icons.refresh, size: 12, color: Color(0xFFF43F5E)),
                             ),
                           ],
                         ),
@@ -192,6 +280,7 @@ class _DashboardTabState extends State<DashboardTab> {
                   ],
                 )
               : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildSummaryCard(
                       'TOTAL SALDO', 
@@ -204,10 +293,26 @@ class _DashboardTabState extends State<DashboardTab> {
                             "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
                             style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
                           ),
-                          const SizedBox(width: 4),
+                          if (!provider.isInitialBalanceSet) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _showEditInitialBalanceDialog(context, provider),
+                              child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
+                            ),
+                          ],
+                          const Spacer(),
                           GestureDetector(
-                            onTap: () => _showEditInitialBalanceDialog(context, provider),
-                            child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
+                            onTap: () => _showResetBalanceConfirmDialog(context, provider),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.refresh, size: 12, color: Color(0xFFF43F5E)),
+                                SizedBox(width: 2),
+                                Text(
+                                  "Reset Saldo",
+                                  style: TextStyle(fontSize: 10, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -240,35 +345,58 @@ class _DashboardTabState extends State<DashboardTab> {
                           ),
                         ],
                       ),
-                      // Budget limit text input
-                      Container(
-                        width: 120,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
-                          border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: TextField(
-                          controller: _budgetController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                            prefixText: 'Rp ',
-                            prefixStyle: TextStyle(color: Colors.grey, fontSize: 12),
+                      // Budget limit text input + reset button
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 110,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                              border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextField(
+                              controller: _budgetController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.right,
+                              textAlignVertical: TextAlignVertical.center,
+                              style: TextStyle(
+                                fontSize: 13, 
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F2015),
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+                                prefixText: 'Rp ',
+                                prefixStyle: TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
+                              inputFormatters: [
+                                ThousandsSeparatorInputFormatter(),
+                              ],
+                              onSubmitted: (val) {
+                                final cleanVal = val.replaceAll('.', '');
+                                final limit = double.tryParse(cleanVal) ?? 0.0;
+                                provider.setBudgetLimit(limit);
+                              },
+                            ),
                           ),
-                          inputFormatters: [
-                            ThousandsSeparatorInputFormatter(),
-                          ],
-                          onSubmitted: (val) {
-                            final cleanVal = val.replaceAll('.', '');
-                            final limit = double.tryParse(cleanVal) ?? 0.0;
-                            provider.setBudgetLimit(limit);
-                          },
-                        ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _showResetBudgetConfirmDialog(context, provider),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0x33F43F5E) : const Color(0x1AF43F5E),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.refresh, size: 16, color: Color(0xFFF43F5E)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -332,6 +460,7 @@ class _DashboardTabState extends State<DashboardTab> {
   Widget _buildSummaryCard(String title, double amount, Color indicatorColor, bool isDark, {String textPrefix = '', Widget? subtitle}) {
     return Card(
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           border: Border(
             left: BorderSide(color: indicatorColor, width: 4.5),
