@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../providers/transaction_provider.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/report_printer.dart' as printer;
@@ -89,6 +93,261 @@ class _HistoryTabState extends State<HistoryTab> {
     });
   }
 
+  // --- EXPORT JSON BACKUP ---
+  Future<void> _exportJson(TransactionProvider provider) async {
+    try {
+      final jsonStr = provider.exportBackupJson();
+      final dir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final filename = 'dompetgweh_backup_${now.year}${now.month.toString().padLeft(2,'0')}${now.day.toString().padLeft(2,'0')}.json';
+      final file = File('${dir.path}/$filename');
+      await file.writeAsString(jsonStr);
+      await Share.shareXFiles([XFile(file.path)], text: 'Backup data DompetGweh', subject: filename);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e'), backgroundColor: const Color(0xFFF43F5E)),
+        );
+      }
+    }
+  }
+
+  // --- EXPORT CSV ---
+  Future<void> _exportCsv(TransactionProvider provider) async {
+    try {
+      final csvStr = provider.exportTransactionsCsv();
+      final dir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final filename = 'dompetgweh_transaksi_${now.year}${now.month.toString().padLeft(2,'0')}${now.day.toString().padLeft(2,'0')}.csv';
+      final file = File('${dir.path}/$filename');
+      await file.writeAsString(csvStr);
+      await Share.shareXFiles([XFile(file.path)], text: 'Data transaksi DompetGweh', subject: filename);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export CSV: $e'), backgroundColor: const Color(0xFFF43F5E)),
+        );
+      }
+    }
+  }
+
+  // --- IMPORT JSON BACKUP ---
+  Future<void> _importJson(TransactionProvider provider) async {
+    // Confirm before import
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import Backup'),
+        content: const Text(
+          'Mengimpor file backup akan MENGGANTIKAN semua data transaksi saat ini. Lanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF43F5E),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Lanjutkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        dialogTitle: 'Pilih File Backup JSON',
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final filePath = result.files.single.path;
+      if (filePath == null) return;
+
+      final file = File(filePath);
+      final jsonStr = await file.readAsString();
+      final success = await provider.importBackupJson(jsonStr);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Data berhasil diimpor!' : 'Format file tidak valid.'),
+            backgroundColor: success ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal import: $e'), backgroundColor: const Color(0xFFF43F5E)),
+        );
+      }
+    }
+  }
+
+  // Show export/import bottom sheet
+  void _showExportImportSheet(BuildContext context, TransactionProvider provider) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF0D1B14) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Kelola Data',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFF2FAF6) : const Color(0xFF0F2015),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Ekspor atau impor data transaksi Anda',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Export JSON
+                _buildSheetOption(
+                  context: ctx,
+                  icon: Icons.upload_file_outlined,
+                  color: const Color(0xFF10B981),
+                  title: 'Ekspor Backup (JSON)',
+                  subtitle: 'Simpan semua data sebagai file backup',
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _exportJson(provider);
+                  },
+                ),
+                const SizedBox(height: 10),
+                // Export CSV
+                _buildSheetOption(
+                  context: ctx,
+                  icon: Icons.table_chart_outlined,
+                  color: const Color(0xFF06B6D4),
+                  title: 'Ekspor ke CSV',
+                  subtitle: 'Format spreadsheet untuk Excel / Google Sheets',
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _exportCsv(provider);
+                  },
+                ),
+                const SizedBox(height: 10),
+                // Import JSON
+                _buildSheetOption(
+                  context: ctx,
+                  icon: Icons.download_outlined,
+                  color: const Color(0xFFF59E0B),
+                  title: 'Impor Backup (JSON)',
+                  subtitle: 'Pulihkan data dari file backup sebelumnya',
+                  isDark: isDark,
+                  isWarning: true,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _importJson(provider);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSheetOption({
+    required BuildContext context,
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+    required VoidCallback onTap,
+    bool isWarning = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? color.withOpacity(0.08) : color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isWarning ? const Color(0xFFF59E0B).withOpacity(0.3) : color.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFFF2FAF6) : const Color(0xFF0F2015),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
 
   // Delete transaction confirm
   Future<void> _deleteTransaction(TransactionProvider provider, Transaction tx) async {
@@ -359,6 +618,7 @@ class _HistoryTabState extends State<HistoryTab> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TransactionProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Gather all categories for dropdown filter
     final allCategories = {
@@ -566,6 +826,16 @@ class _HistoryTabState extends State<HistoryTab> {
                                 },
                                 tooltip: 'Cetak Laporan',
                               ),
+                              IconButton(
+                                icon: const Icon(Icons.swap_vert_circle_outlined, size: 20, color: Color(0xFF06B6D4)),
+                                onPressed: () => _showExportImportSheet(context, provider),
+                                tooltip: 'Ekspor / Impor Data',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.auto_awesome, size: 18, color: Color(0xFF7C3AED)),
+                                onPressed: () => _showMonthSelectionSheet(context, provider.transactions),
+                                tooltip: 'Ringkasan Bulanan (Wrapped)',
+                              ),
                             ],
                           ),
                         ],
@@ -582,6 +852,7 @@ class _HistoryTabState extends State<HistoryTab> {
               ),
             ),
           ),
+
 
         ],
       ),
@@ -674,13 +945,15 @@ class _HistoryTabState extends State<HistoryTab> {
   Widget _buildMobileListView(TransactionProvider provider, List<Transaction> list) {
     final controller = ScrollController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scrollbarColor = isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.15);
+    final scrollbarColor = isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05);
 
     return RawScrollbar(
       controller: controller,
       thumbColor: scrollbarColor,
-      radius: const Radius.circular(4),
-      thickness: 4.0,
+      radius: const Radius.circular(99),
+      thickness: 3.0,
+      fadeDuration: const Duration(milliseconds: 300),
+      timeToFade: const Duration(milliseconds: 600),
       child: ListView.separated(
         controller: controller,
         itemCount: list.length,
@@ -807,4 +1080,459 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 
 
+  // ─── Monthly Wrapped Section (Bottom Sheets) ───────────────────────────
+
+  void _showMonthSelectionSheet(BuildContext context, List<Transaction> allTransactions) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Group transactions by "YYYY-MM"
+    final Map<String, List<Transaction>> byMonth = {};
+    for (final tx in allTransactions) {
+      final key = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";
+      byMonth.putIfAbsent(key, () => []).add(tx);
+    }
+
+    final sortedKeys = byMonth.keys.toList()..sort((a, b) => b.compareTo(a));
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF0D1B14) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Pilih Bulan Wrapped 🎁',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? const Color(0xFFF2FAF6) : const Color(0xFF0F2015),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Lihat rangkuman penuh pengeluaran dan pemasukan bulanan Anda',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (sortedKeys.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Belum ada transaksi.',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: sortedKeys.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final monthKey = sortedKeys[index];
+                        final parts = monthKey.split('-');
+                        final year = int.parse(parts[0]);
+                        final monthIdx = int.parse(parts[1]) - 1;
+                        final monthLabel = "${monthNames[monthIdx]} $year";
+                        final txs = byMonth[monthKey]!;
+
+                        double totalIn = 0, totalOut = 0;
+                        for (final tx in txs) {
+                          if (tx.type == 'income') {
+                            totalIn += tx.amount;
+                          } else {
+                            totalOut += tx.amount;
+                          }
+                        }
+                        final net = totalIn - totalOut;
+
+                        return InkWell(
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _showMonthlyWrappedDetailSheet(
+                              context,
+                              monthKey,
+                              txs,
+                              monthLabel,
+                              isDark,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? Colors.white12 : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        monthLabel,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${txs.length} Transaksi  •  Net: ${_currencyFormat.format(net)}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: net >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: isDark ? Colors.white30 : Colors.black.withOpacity(0.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMonthlyWrappedDetailSheet(
+    BuildContext context,
+    String monthKey,
+    List<Transaction> transactions,
+    String monthLabel,
+    bool isDark,
+  ) {
+    double totalIncome = 0;
+    double totalExpense = 0;
+    final Map<String, double> incomeByCategory = {};
+    final Map<String, double> expenseByCategory = {};
+
+    for (final tx in transactions) {
+      if (tx.type == 'income') {
+        totalIncome += tx.amount;
+        incomeByCategory[tx.category] = (incomeByCategory[tx.category] ?? 0) + tx.amount;
+      } else {
+        totalExpense += tx.amount;
+        expenseByCategory[tx.category] = (expenseByCategory[tx.category] ?? 0) + tx.amount;
+      }
+    }
+
+    final net = totalIncome - totalExpense;
+    final accentColor = net >= 0 ? const Color(0xFF10B981) : const Color(0xFFF43F5E);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF0D1B14) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) {
+            return Column(
+              children: [
+                // Top drag indicator and Header row
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.auto_awesome, color: Color(0xFF7C3AED), size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Wrapped $monthLabel 🎁',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Content
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      // Overview Banner Box
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: net >= 0
+                                ? [const Color(0xFF064E3B), const Color(0xFF065F46)]
+                                : [const Color(0xFF7F1D1D), const Color(0xFF991B1B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accentColor.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total Pemasukan', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                Text(_currencyFormat.format(totalIncome), style: const TextStyle(color: Color(0xFF6EE7B7), fontSize: 14, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Total Pengeluaran', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                Text(_currencyFormat.format(totalExpense), style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 14, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            const Divider(color: Colors.white24, height: 1),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  net >= 0 ? 'Surplus Bulanan ✨' : 'Defisit Bulanan ⚠️',
+                                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  _currencyFormat.format(net),
+                                  style: TextStyle(
+                                    color: net >= 0 ? const Color(0xFF6EE7B7) : const Color(0xFFFCA5A5),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Breakdown
+                      if (incomeByCategory.isNotEmpty) ...[
+                        _categoryBreakdownTitle('💰 Pemasukan dari Apa Saja', const Color(0xFF10B981), isDark),
+                        const SizedBox(height: 10),
+                        ..._buildCategoryRows(incomeByCategory, totalIncome, const Color(0xFF10B981), isDark),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (expenseByCategory.isNotEmpty) ...[
+                        _categoryBreakdownTitle('💸 Pengeluaran untuk Apa Saja', const Color(0xFFF43F5E), isDark),
+                        const SizedBox(height: 10),
+                        ..._buildCategoryRows(expenseByCategory, totalExpense, const Color(0xFFF43F5E), isDark),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const Divider(height: 1),
+                // Action Buttons at bottom
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            printer.printMonthlyWrappedReport(
+                              monthLabel: monthLabel,
+                              totalIncome: totalIncome,
+                              totalExpense: totalExpense,
+                              incomeByCategory: incomeByCategory,
+                              expenseByCategory: expenseByCategory,
+                            );
+                          },
+                          icon: const Icon(Icons.print, color: Colors.white),
+                          label: const Text('Cetak Ringkasan PDF'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _categoryBreakdownTitle(String title, Color color, bool isDark) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 16,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFF2FAF6) : const Color(0xFF0F2015),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildCategoryRows(
+    Map<String, double> data,
+    double total,
+    Color color,
+    bool isDark,
+  ) {
+    final sorted = data.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.map((entry) {
+      final pct = total > 0 ? (entry.value / total * 100) : 0.0;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      _currencyFormat.format(entry.value),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${pct.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: pct / 100,
+                minHeight: 6,
+                backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
+                valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.85)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
 }
+

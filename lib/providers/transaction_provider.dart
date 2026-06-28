@@ -10,6 +10,7 @@ class TransactionProvider with ChangeNotifier {
   bool _isInitialBalanceSet = false;
   ThemeMode _themeMode = ThemeMode.light;
   Map<String, double> _categoryBudgets = {};
+  bool _isObscured = false;
 
   // Categories definition
   static const List<String> incomeCategories = ['Gaji', 'Investasi', 'Lain-lain'];
@@ -29,6 +30,7 @@ class TransactionProvider with ChangeNotifier {
   bool get isInitialBalanceSet => _isInitialBalanceSet;
   ThemeMode get themeMode => _themeMode;
   Map<String, double> get categoryBudgets => _categoryBudgets;
+  bool get isObscured => _isObscured;
 
   TransactionProvider() {
     loadState();
@@ -61,6 +63,9 @@ class TransactionProvider with ChangeNotifier {
     // Load theme mode
     final themeStr = prefs.getString('theme_mode') ?? 'light';
     _themeMode = themeStr == 'dark' ? ThemeMode.dark : ThemeMode.light;
+
+    // Load obscured state
+    _isObscured = prefs.getBool('is_obscured') ?? false;
 
     // Load transactions
     final txListJson = prefs.getStringList('transactions');
@@ -188,6 +193,14 @@ class TransactionProvider with ChangeNotifier {
   // Toggle theme mode
   void toggleTheme() {
     setThemeMode(_themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  // Toggle obscured (hide nominal) state
+  Future<void> toggleObscured() async {
+    _isObscured = !_isObscured;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_obscured', _isObscured);
+    notifyListeners();
   }
 
   // Export Backup JSON string

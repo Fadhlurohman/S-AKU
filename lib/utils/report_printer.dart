@@ -201,3 +201,207 @@ pw.Widget _summaryRow(String label, String value, PdfColor valueColor, {bool bol
     ),
   );
 }
+
+void printMonthlyWrappedReport({
+  required String monthLabel,
+  required double totalIncome,
+  required double totalExpense,
+  required Map<String, double> incomeByCategory,
+  required Map<String, double> expenseByCategory,
+}) async {
+  final formatCurrency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final now = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(DateTime.now());
+
+  pw.Font? fontRegular, fontBold, fontItalic;
+  try {
+    fontRegular = await PdfGoogleFonts.nunitoRegular();
+    fontBold = await PdfGoogleFonts.nunitoBold();
+    fontItalic = await PdfGoogleFonts.nunitoItalic();
+  } catch (_) {}
+
+  const green = PdfColor.fromInt(0xFF10B981);
+  const red = PdfColor.fromInt(0xFFF43F5E);
+  const headerBg = PdfColor.fromInt(0xFFF3F4F6);
+  const textDark = PdfColor.fromInt(0xFF1F2937);
+  const textGrey = PdfColor.fromInt(0xFF6B7280);
+  const borderColor = PdfColor.fromInt(0xFFE5E7EB);
+
+  final net = totalIncome - totalExpense;
+  final pdf = pw.Document();
+  final theme = fontRegular != null
+      ? pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+          italic: fontItalic,
+        )
+      : pw.ThemeData();
+
+  pdf.addPage(
+    pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      theme: theme,
+      build: (context) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'DompetGweh - Monthly Wrapped',
+                      style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                        color: green,
+                      ),
+                    ),
+                    pw.Text(
+                      'Ringkasan Keuangan Bulanan',
+                      style: pw.TextStyle(fontSize: 10, color: textGrey),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      monthLabel,
+                      style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: textDark),
+                    ),
+                    pw.Text(
+                      'Dicetak pada: $now',
+                      style: pw.TextStyle(fontSize: 8, color: textGrey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            pw.Divider(color: borderColor),
+            pw.SizedBox(height: 12),
+
+            // Overview Card
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: headerBg,
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                border: pw.Border.all(color: borderColor, width: 0.5),
+              ),
+              child: pw.Column(
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Total Pemasukan', style: const pw.TextStyle(fontSize: 11)),
+                      pw.Text(formatCurrency.format(totalIncome), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: green)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Total Pengeluaran', style: const pw.TextStyle(fontSize: 11)),
+                      pw.Text(formatCurrency.format(totalExpense), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: red)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Divider(color: borderColor),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        net >= 0 ? 'Surplus Bulanan' : 'Defisit Bulanan',
+                        style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: textDark),
+                      ),
+                      pw.Text(
+                        formatCurrency.format(net),
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                          color: net >= 0 ? green : red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 24),
+
+            // Breakdown Sections
+            if (incomeByCategory.isNotEmpty) ...[
+              pw.Text('Rincian Pemasukan per Kategori', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: textDark)),
+              pw.SizedBox(height: 8),
+              _buildPdfCategoryTable(incomeByCategory, totalIncome, green, formatCurrency),
+              pw.SizedBox(height: 20),
+            ],
+
+            if (expenseByCategory.isNotEmpty) ...[
+              pw.Text('Rincian Pengeluaran per Kategori', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: textDark)),
+              pw.SizedBox(height: 8),
+              _buildPdfCategoryTable(expenseByCategory, totalExpense, red, formatCurrency),
+            ],
+          ],
+        );
+      },
+    ),
+  );
+
+  await Printing.layoutPdf(
+    onLayout: (format) async => pdf.save(),
+    name: 'Wrapped_DompetGweh_${monthLabel.replaceAll(' ', '_')}.pdf',
+  );
+}
+
+pw.Widget _buildPdfCategoryTable(
+  Map<String, double> categories,
+  double total,
+  PdfColor themeColor,
+  NumberFormat formatter,
+) {
+  final sorted = categories.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final headerStyle = pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF374151));
+  final cellStyle = const pw.TextStyle(fontSize: 9);
+
+  final rows = <pw.TableRow>[
+    pw.TableRow(
+      decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFFF9FAFB)),
+      children: [
+        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Kategori', style: headerStyle)),
+        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Nominal', style: headerStyle, textAlign: pw.TextAlign.right)),
+        pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Persentase', style: headerStyle, textAlign: pw.TextAlign.right)),
+      ],
+    ),
+  ];
+
+  for (final entry in sorted) {
+    final pct = total > 0 ? (entry.value / total * 100) : 0.0;
+    rows.add(
+      pw.TableRow(
+        children: [
+          pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(entry.key, style: cellStyle)),
+          pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatter.format(entry.value), style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: themeColor), textAlign: pw.TextAlign.right)),
+          pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${pct.toStringAsFixed(1)}%', style: cellStyle, textAlign: pw.TextAlign.right)),
+        ],
+      ),
+    );
+  }
+
+  return pw.Table(
+    border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFE5E7EB), width: 0.5),
+    columnWidths: {
+      0: const pw.FlexColumnWidth(4),
+      1: const pw.FlexColumnWidth(3),
+      2: const pw.FlexColumnWidth(2),
+    },
+    children: rows,
+  );
+}
+

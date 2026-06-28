@@ -16,7 +16,6 @@ class DashboardTab extends StatefulWidget {
 
 class _DashboardTabState extends State<DashboardTab> {
   final _currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-  bool _isObscured = false;
   bool _showCategoryBudgets = false;
 
   @override
@@ -402,7 +401,8 @@ class _DashboardTabState extends State<DashboardTab> {
     String title,
     double amount,
     Color indicatorColor,
-    bool isDark, {
+    bool isDark,
+    bool isObscured, {
     String textPrefix = '',
     Widget? subtitle,
     VoidCallback? onEdit,
@@ -471,7 +471,7 @@ class _DashboardTabState extends State<DashboardTab> {
             ),
             const SizedBox(height: 4),
             Text(
-              _isObscured
+              isObscured
                   ? (textPrefix.isNotEmpty ? "$textPrefix ••••••" : "Rp ••••••")
                   : (textPrefix.isNotEmpty
                       ? "$textPrefix ${_formatAmount(amount).replaceFirst('Rp', '').trim()}"
@@ -500,6 +500,7 @@ class _DashboardTabState extends State<DashboardTab> {
     TransactionProvider provider,
     double currentMonthExpenses,
     bool isDark,
+    bool isObscured,
   ) {
     final budgetLimit = provider.budgetLimit;
     final percent = budgetLimit > 0 ? (currentMonthExpenses / budgetLimit) * 100 : 0.0;
@@ -577,7 +578,7 @@ class _DashboardTabState extends State<DashboardTab> {
             // Budget limit value
             Text(
               budgetLimit > 0
-                  ? (_isObscured ? 'Rp ••••••' : _formatAmount(budgetLimit))
+                  ? (isObscured ? 'Rp ••••••' : _formatAmount(budgetLimit))
                   : 'Belum diatur',
               style: TextStyle(
                 fontSize: 22,
@@ -605,7 +606,7 @@ class _DashboardTabState extends State<DashboardTab> {
               children: [
                 Expanded(
                   child: Text(
-                    'Terpakai: ${_isObscured ? "Rp ••••••" : _formatAmount(currentMonthExpenses)}',
+                    'Terpakai: ${isObscured ? "Rp ••••••" : _formatAmount(currentMonthExpenses)}',
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
@@ -679,6 +680,7 @@ class _DashboardTabState extends State<DashboardTab> {
     TransactionProvider provider,
     List<Transaction> transactions,
     bool isDark,
+    bool isObscured,
   ) {
     final categories = TransactionProvider.expenseCategories;
     final now = DateTime.now();
@@ -731,7 +733,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           children: [
                             if (limit > 0)
                               Text(
-                                '${_isObscured ? "••••" : _formatAmount(spent)} / ${_isObscured ? "••••" : _formatAmount(limit)}',
+                                '${isObscured ? "••••" : _formatAmount(spent)} / ${isObscured ? "••••" : _formatAmount(limit)}',
                                 style: TextStyle(fontSize: 11, color: barColor, fontWeight: FontWeight.bold),
                               )
                             else
@@ -813,15 +815,28 @@ class _DashboardTabState extends State<DashboardTab> {
         ),
       ];
     } else {
+      double totalExpenses = 0.0;
+      for (var v in expensesData.values) {
+        totalExpenses += v;
+      }
+
       sections = List.generate(categoriesWithValues.length, (index) {
         final cat = categoriesWithValues[index];
         final val = expensesData[cat] ?? 0.0;
         final color = colors[index % colors.length];
+        final double pct = totalExpenses > 0 ? (val / totalExpenses * 100) : 0.0;
         return PieChartSectionData(
           color: color,
           value: val,
-          radius: 35,
-          showTitle: false,
+          radius: 42,
+          showTitle: true,
+          title: '${pct.round()}%',
+          titleStyle: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          titlePositionPercentageOffset: 0.55,
         );
       });
     }
@@ -1006,6 +1021,7 @@ class _DashboardTabState extends State<DashboardTab> {
     final provider = Provider.of<TransactionProvider>(context);
     final transactions = provider.transactions;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isObscured = provider.isObscured;
 
     // 1. Calculate Summary Totals
     double totalIncome = 0;
@@ -1066,16 +1082,14 @@ class _DashboardTabState extends State<DashboardTab> {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 icon: Icon(
-                  _isObscured ? Icons.visibility_off : Icons.visibility,
+                  isObscured ? Icons.visibility_off : Icons.visibility,
                   color: const Color(0xFF10B981),
                   size: 20,
                 ),
                 onPressed: () {
-                  setState(() {
-                    _isObscured = !_isObscured;
-                  });
+                  provider.toggleObscured();
                 },
-                tooltip: _isObscured ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+                tooltip: isObscured ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
               ),
             ],
           ),
@@ -1184,11 +1198,12 @@ class _DashboardTabState extends State<DashboardTab> {
                 balance,
                 const Color(0xFF10B981),
                 isDark,
+                isObscured,
                 subtitle: !provider.isInitialBalanceSet
                     ? Row(
                         children: [
                           Text(
-                            "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
+                            "Saldo Awal: ${isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
                             style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
                           ),
                         ],
@@ -1210,6 +1225,7 @@ class _DashboardTabState extends State<DashboardTab> {
                       totalIncome,
                       const Color(0xFF10B981),
                       isDark,
+                      isObscured,
                       textPrefix: '+',
                       isCompact: true,
                     ),
@@ -1221,6 +1237,7 @@ class _DashboardTabState extends State<DashboardTab> {
                       totalExpense,
                       const Color(0xFFF43F5E),
                       isDark,
+                      isObscured,
                       textPrefix: '-',
                       isCompact: true,
                     ),
@@ -1232,7 +1249,7 @@ class _DashboardTabState extends State<DashboardTab> {
           const SizedBox(height: 10),
 
           // Budget Limit Card (card-style like Total Saldo)
-          _buildBudgetCard(context, provider, currentMonthExpenses, isDark),
+          _buildBudgetCard(context, provider, currentMonthExpenses, isDark, isObscured),
           const SizedBox(height: 10),
 
           // Category Budget Section (hidden by default, revealed by toggle)
@@ -1245,7 +1262,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 ? Padding(
                     key: const ValueKey('catBudgets'),
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildCategoryBudgetSection(context, provider, transactions, isDark),
+                    child: _buildCategoryBudgetSection(context, provider, transactions, isDark, isObscured),
                   )
                 : const SizedBox.shrink(key: ValueKey('catBudgetsHidden')),
           ),
