@@ -84,13 +84,13 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
   }
 
   // Handle Form Submit
-  void _submitForm() {
+  void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = Provider.of<TransactionProvider>(context, listen: false);
     final cleanAmountStr = _amountController.text.replaceAll('.', '');
     final amount = double.tryParse(cleanAmountStr) ?? 0.0;
-    
+
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -111,15 +111,54 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
       now.second,
     );
 
+    final description = _descController.text.trim().isEmpty
+        ? (_type == 'income' ? 'Pemasukan' : 'Pengeluaran')
+        : _descController.text.trim();
+
+    // Confirmation dialog before saving
+    final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Transaksi'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Simpan transaksi berikut?', style: TextStyle(fontSize: 13)),
+            const SizedBox(height: 12),
+            _buildConfirmRow('Tipe', _type == 'income' ? 'Pemasukan' : 'Pengeluaran'),
+            _buildConfirmRow('Kategori', _selectedCategory ?? '-'),
+            _buildConfirmRow('Nominal', currencyFormat.format(amount)),
+            _buildConfirmRow('Catatan', description),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
     final newTx = Transaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: _type,
       category: _selectedCategory ?? 'Lain-lain',
       amount: amount,
       date: transactionDate,
-      description: _descController.text.trim().isEmpty 
-          ? (_type == 'income' ? 'Pemasukan' : 'Pengeluaran') 
-          : _descController.text.trim(),
+      description: description,
     );
 
     provider.addTransaction(newTx);
@@ -145,6 +184,29 @@ class _AddTransactionTabState extends State<AddTransactionTab> {
     if (widget.onSuccess != null) {
       widget.onSuccess!();
     }
+  }
+
+  // Helper widget for confirmation dialog rows
+  Widget _buildConfirmRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ),
+          const Text(': ', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

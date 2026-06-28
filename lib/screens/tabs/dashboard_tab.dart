@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../providers/transaction_provider.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/formatters.dart';
+import '../wrapped_screen.dart';
 
 class DashboardTab extends StatefulWidget {
   const DashboardTab({super.key});
@@ -15,12 +16,11 @@ class DashboardTab extends StatefulWidget {
 
 class _DashboardTabState extends State<DashboardTab> {
   final _currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-  final _budgetController = TextEditingController();
   bool _isObscured = false;
+  bool _showCategoryBudgets = false;
 
   @override
   void dispose() {
-    _budgetController.dispose();
     super.dispose();
   }
 
@@ -50,6 +50,7 @@ class _DashboardTabState extends State<DashboardTab> {
               TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
+                autofocus: true,
                 decoration: InputDecoration(
                   prefixText: 'Rp ',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -66,17 +67,49 @@ class _DashboardTabState extends State<DashboardTab> {
               child: const Text('Batal', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final text = controller.text.replaceAll('.', '');
                 final amount = double.tryParse(text) ?? 0.0;
-                provider.setInitialBalance(amount);
                 Navigator.of(context).pop();
+                // Confirmation dialog
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Konfirmasi Saldo Awal'),
+                    content: Text(
+                      'Simpan saldo awal sebesar ${_formatAmount(amount)}?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Simpan'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  provider.setInitialBalance(amount);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Saldo awal berhasil disimpan.'),
+                      backgroundColor: Color(0xFF10B981),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF10B981),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Simpan'),
+              child: const Text('Lanjut'),
             ),
           ],
         );
@@ -122,6 +155,95 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
+  // Dialog to set monthly budget limit (card-style like Total Saldo)
+  void _showEditBudgetLimitDialog(BuildContext context, TransactionProvider provider) {
+    final controller = TextEditingController(
+      text: provider.budgetLimit > 0
+          ? NumberFormat.decimalPattern('id').format(provider.budgetLimit)
+          : ''
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Atur Batas Anggaran Bulanan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Masukkan batas pengeluaran bulanan Anda:', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  prefixText: 'Rp ',
+                  hintText: 'Contoh: 3.000.000',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                inputFormatters: [
+                  ThousandsSeparatorInputFormatter(),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final text = controller.text.replaceAll('.', '');
+                final limit = double.tryParse(text) ?? 0.0;
+                Navigator.of(context).pop();
+                // Confirmation dialog
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Konfirmasi Anggaran'),
+                    content: Text(
+                      'Simpan batas anggaran bulanan sebesar ${_formatAmount(limit)}?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Simpan'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  provider.setBudgetLimit(limit);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Batas anggaran bulanan berhasil disimpan.'),
+                      backgroundColor: Color(0xFF10B981),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Lanjut'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Dialog to confirm reset budget limit
   void _showResetBudgetConfirmDialog(BuildContext context, TransactionProvider provider) {
     showDialog(
@@ -138,7 +260,6 @@ class _DashboardTabState extends State<DashboardTab> {
             ElevatedButton(
               onPressed: () {
                 provider.resetBudgetLimit();
-                _budgetController.clear();
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -159,303 +280,390 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<TransactionProvider>(context);
-    final transactions = provider.transactions;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // 1. Calculate Summary Totals
-    double totalIncome = 0;
-    double totalExpense = 0;
-    for (var tx in transactions) {
-      if (tx.type == 'income') {
-        totalIncome += tx.amount;
-      } else {
-        totalExpense += tx.amount;
-      }
-    }
-    double balance = provider.initialBalance + totalIncome - totalExpense;
-
-    // 2. Calculate Current Month Expenses for Budget
-    final now = DateTime.now();
-    final currentYearMonth = "${now.year}-${now.month.toString().padLeft(2, '0')}";
-    double currentMonthExpenses = 0.0;
-    for (var tx in transactions) {
-      if (tx.type == 'expense') {
-        final txYearMonth = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";
-        if (txYearMonth == currentYearMonth) {
-          currentMonthExpenses += tx.amount;
-        }
-      }
-    }
-
-    final double budgetLimit = provider.budgetLimit;
-    final double percent = budgetLimit > 0 ? (currentMonthExpenses / budgetLimit) * 100 : 0.0;
-    final double progressPercent = (percent / 100).clamp(0.0, 1.0);
-
-    // Sync input text controller with provider value
-    if (budgetLimit == 0.0) {
-      _budgetController.clear();
-    } else if (_budgetController.text.isEmpty && budgetLimit > 0) {
-      _budgetController.text = NumberFormat.decimalPattern('id').format(budgetLimit);
-    }
-
-    // Determine progress bar color
-    Color budgetColor = const Color(0xFF10B981); // Green
-    if (percent >= 100) {
-      budgetColor = const Color(0xFFF43F5E); // Red
-    } else if (percent >= 80) {
-      budgetColor = const Color(0xFFF59E0B); // Orange/Amber
-    }
-
-    // Responsive checking
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 768;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Ringkasan Finansial',
-                style: TextStyle(
-                  fontSize: 16, 
-                  fontWeight: FontWeight.bold, 
-                  color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
-                ),
-              ),
-              IconButton(
-                icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF10B981)),
-                onPressed: () {
-                  setState(() {
-                    _isObscured = !_isObscured;
-                  });
-                },
-                tooltip: _isObscured ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
-              ),
-            ],
+  // Dialog to set budget for a category (with confirm)
+  void _showCategoryBudgetDialog(
+    BuildContext context,
+    TransactionProvider provider,
+    String category,
+    double currentLimit,
+  ) {
+    final ctrl = TextEditingController(
+      text: currentLimit > 0 ? NumberFormat.decimalPattern('id').format(currentLimit) : '',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Anggaran: $category', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          inputFormatters: [ThousandsSeparatorInputFormatter()],
+          decoration: InputDecoration(
+            prefixText: 'Rp ',
+            hintText: 'Contoh: 500.000',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          const SizedBox(height: 12),
-          // Row of Summary Cards (Balanced, Income, Expense)
-          isDesktop
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'TOTAL SALDO', 
-                        balance, 
-                        const Color(0xFF10B981), 
-                        isDark,
-                        subtitle: Row(
-                          children: [
-                            Text(
-                              "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
-                              style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
-                            ),
-                            if (!provider.isInitialBalanceSet) ...[
-                              const SizedBox(width: 4),
-                              GestureDetector(
-                                onTap: () => _showEditInitialBalanceDialog(context, provider),
-                                child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
-                              ),
-                            ],
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () => _showResetBalanceConfirmDialog(context, provider),
-                              child: const Icon(Icons.refresh, size: 12, color: Color(0xFFF43F5E)),
-                            ),
-                          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final amount = double.tryParse(ctrl.text.replaceAll('.', '')) ?? 0;
+              Navigator.pop(ctx);
+              if (amount > 0) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: Text('Konfirmasi Anggaran $category'),
+                    content: Text('Simpan anggaran kategori "$category" sebesar ${_formatAmount(amount)}?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
                         ),
+                        child: const Text('Simpan'),
                       ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && context.mounted) {
+                  provider.setCategoryBudget(category, amount);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Anggaran "$category" berhasil disimpan.'),
+                      backgroundColor: const Color(0xFF10B981),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildSummaryCard('PEMASUKAN', totalIncome, const Color(0xFF10B981), isDark, textPrefix: '+')),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildSummaryCard('PENGELUARAN', totalExpense, const Color(0xFFF43F5E), isDark, textPrefix: '-')),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildSummaryCard(
-                      'TOTAL SALDO', 
-                      balance, 
-                      const Color(0xFF10B981), 
-                      isDark,
-                      subtitle: Row(
-                        children: [
-                          Text(
-                            "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
-                            style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
-                          ),
-                          if (!provider.isInitialBalanceSet) ...[
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () => _showEditInitialBalanceDialog(context, provider),
-                              child: const Icon(Icons.edit, size: 12, color: Color(0xFF10B981)),
-                            ),
-                          ],
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () => _showResetBalanceConfirmDialog(context, provider),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.refresh, size: 12, color: Color(0xFFF43F5E)),
-                                SizedBox(width: 2),
-                                Text(
-                                  "Reset Saldo",
-                                  style: TextStyle(fontSize: 10, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSummaryCard('PEMASUKAN', totalIncome, const Color(0xFF10B981), isDark, textPrefix: '+'),
-                    const SizedBox(height: 12),
-                    _buildSummaryCard('PENGELUARAN', totalExpense, const Color(0xFFF43F5E), isDark, textPrefix: '-'),
-                  ],
-                ),
-          const SizedBox(height: 20),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Lanjut'),
+          ),
+        ],
+      ),
+    );
+  }
 
-          // Budget Limit Panel
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+  // Confirm reset category budget
+  void _showResetCategoryBudgetConfirmDialog(
+    BuildContext context,
+    TransactionProvider provider,
+    String category,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Anggaran Kategori'),
+        content: Text('Hapus anggaran untuk kategori "$category"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              provider.resetCategoryBudget(category);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Anggaran "$category" berhasil dihapus.'),
+                  backgroundColor: const Color(0xFF10B981),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF43F5E),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Custom Summary Card Widget builder
+  Widget _buildSummaryCard(
+    String title,
+    double amount,
+    Color indicatorColor,
+    bool isDark, {
+    String textPrefix = '',
+    Widget? subtitle,
+    VoidCallback? onEdit,
+    VoidCallback? onReset,
+  }) {
+    return Card(
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: indicatorColor, width: 4.5),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                    color: Colors.grey,
+                  ),
+                ),
+                if (onEdit != null || onReset != null)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.monetization_on_outlined, size: 20, color: Color(0xFF10B981)),
-                          SizedBox(width: 6),
-                          Text(
-                            'Batas Anggaran Bulanan',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      // Budget limit text input + reset button
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 110,
-                            height: 38,
+                      if (onEdit != null)
+                        GestureDetector(
+                          onTap: onEdit,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                              border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
-                              borderRadius: BorderRadius.circular(8),
+                              color: isDark ? const Color(0xFF10B981).withOpacity(0.12) : const Color(0xFF10B981).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            child: TextField(
-                              controller: _budgetController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.right,
-                              textAlignVertical: TextAlignVertical.center,
-                              style: TextStyle(
-                                fontSize: 13, 
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F2015),
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-                                prefixText: 'Rp ',
-                                prefixStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                              ),
-                              inputFormatters: [
-                                ThousandsSeparatorInputFormatter(),
-                              ],
-                              onSubmitted: (val) {
-                                final cleanVal = val.replaceAll('.', '');
-                                final limit = double.tryParse(cleanVal) ?? 0.0;
-                                provider.setBudgetLimit(limit);
-                              },
-                            ),
+                            child: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF10B981)),
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => _showResetBudgetConfirmDialog(context, provider),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0x33F43F5E) : const Color(0x1AF43F5E),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.refresh, size: 16, color: Color(0xFFF43F5E)),
+                        ),
+                      if (onEdit != null && onReset != null) const SizedBox(width: 6),
+                      if (onReset != null)
+                        GestureDetector(
+                          onTap: onReset,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFFF43F5E).withOpacity(0.12) : const Color(0xFFF43F5E).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
                             ),
+                            child: const Icon(Icons.refresh, size: 14, color: Color(0xFFF43F5E)),
                           ),
-                        ],
-                      ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  
-                  // Linear Progress Bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: progressPercent,
-                      minHeight: 10,
-                      backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                      valueColor: AlwaysStoppedAnimation<Color>(budgetColor),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  
-                  // Progress Text
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Terpakai: ${_isObscured ? "Rp ••••••" : _formatAmount(currentMonthExpenses)} / ${budgetLimit > 0 ? (_isObscured ? "Rp ••••••" : _formatAmount(budgetLimit)) : "Belum diatur"}',
-                        style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236)),
-                      ),
-                      Text(
-                        '${percent.round()}%',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: budgetColor),
-                      ),
-                    ],
-                  ),
-                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isObscured
+                  ? (textPrefix.isNotEmpty ? "$textPrefix ••••••" : "Rp ••••••")
+                  : (textPrefix.isNotEmpty
+                      ? "$textPrefix ${_formatAmount(amount).replaceFirst('Rp', '').trim()}"
+                      : _formatAmount(amount)),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: title == 'TOTAL SALDO'
+                  ? (isDark ? Colors.white : const Color(0xFF0F2015))
+                  : indicatorColor,
               ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 6),
+              subtitle,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Budget Card - mimics summary card style but shows progress
+  Widget _buildBudgetCard(
+    BuildContext context,
+    TransactionProvider provider,
+    double currentMonthExpenses,
+    bool isDark,
+  ) {
+    final budgetLimit = provider.budgetLimit;
+    final percent = budgetLimit > 0 ? (currentMonthExpenses / budgetLimit) * 100 : 0.0;
+    final progressPercent = (percent / 100).clamp(0.0, 1.0);
+
+    Color budgetColor = const Color(0xFF10B981);
+    if (percent >= 100) {
+      budgetColor = const Color(0xFFF43F5E);
+    } else if (percent >= 80) {
+      budgetColor = const Color(0xFFF59E0B);
+    }
+
+    return Card(
+      child: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          border: Border(
+            left: BorderSide(color: Color(0xFF10B981), width: 4.5),
           ),
-          const SizedBox(height: 20),
-
-          // Category Budget Section
-          _buildCategoryBudgetSection(context, provider, transactions, isDark),
-          const SizedBox(height: 20),
-
-          // Charts Section
-          isDesktop
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title row with action buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
                   children: [
-                    Expanded(child: _buildDonutChartCard(transactions, isDark)),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildBarChartCard(transactions, isDark)),
-                  ],
-                )
-              : Column(
-                  children: [
-                    _buildDonutChartCard(transactions, isDark),
-                    const SizedBox(height: 16),
-                    _buildBarChartCard(transactions, isDark),
+                    Icon(Icons.monetization_on_outlined, size: 16, color: Color(0xFF10B981)),
+                    SizedBox(width: 6),
+                    Text(
+                      'BATAS ANGGARAN BULANAN',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ],
                 ),
-        ],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _showEditBudgetLimitDialog(context, provider),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF10B981).withOpacity(0.12) : const Color(0xFF10B981).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF10B981)),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => _showResetBudgetConfirmDialog(context, provider),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFFF43F5E).withOpacity(0.12) : const Color(0xFFF43F5E).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(Icons.refresh, size: 14, color: Color(0xFFF43F5E)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Budget limit value
+            Text(
+              budgetLimit > 0
+                  ? (_isObscured ? 'Rp ••••••' : _formatAmount(budgetLimit))
+                  : 'Belum diatur',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: budgetLimit > 0
+                    ? (isDark ? Colors.white : const Color(0xFF0F2015))
+                    : Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 14),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progressPercent,
+                minHeight: 8,
+                backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                valueColor: AlwaysStoppedAnimation<Color>(budgetColor),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Progress text
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Terpakai: ${_isObscured ? "Rp ••••••" : _formatAmount(currentMonthExpenses)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
+                    ),
+                  ),
+                ),
+                Text(
+                  '${percent.round()}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: budgetColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Toggle to show/hide category budgets
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _showCategoryBudgets = !_showCategoryBudgets;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _showCategoryBudgets ? Icons.pie_chart : Icons.pie_chart_outline,
+                      size: 14,
+                      color: const Color(0xFF10B981),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _showCategoryBudgets ? 'Sembunyikan Anggaran Kategori' : 'Tampilkan Anggaran Kategori',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _showCategoryBudgets ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -535,7 +743,7 @@ class _DashboardTabState extends State<DashboardTab> {
                             if (limit > 0) ...[
                               const SizedBox(width: 2),
                               GestureDetector(
-                                onTap: () => provider.resetCategoryBudget(cat),
+                                onTap: () => _showResetCategoryBudgetConfirmDialog(context, provider, cat),
                                 child: const Icon(Icons.close, size: 15, color: Color(0xFFF43F5E)),
                               ),
                             ],
@@ -563,109 +771,13 @@ class _DashboardTabState extends State<DashboardTab> {
     );
   }
 
-  // Dialog to set budget for a category
-  void _showCategoryBudgetDialog(
-    BuildContext context,
-    TransactionProvider provider,
-    String category,
-    double currentLimit,
-  ) {
-    final ctrl = TextEditingController(
-      text: currentLimit > 0 ? NumberFormat.decimalPattern('id').format(currentLimit) : '',
-    );
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Anggaran: $category', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          inputFormatters: [ThousandsSeparatorInputFormatter()],
-          decoration: InputDecoration(
-            prefixText: 'Rp ',
-            hintText: 'Contoh: 500.000',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final amount = double.tryParse(ctrl.text.replaceAll('.', '')) ?? 0;
-              if (amount > 0) provider.setCategoryBudget(category, amount);
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Custom Summary Card Widget builder
-  Widget _buildSummaryCard(String title, double amount, Color indicatorColor, bool isDark, {String textPrefix = '', Widget? subtitle}) {
-    return Card(
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: indicatorColor, width: 4.5),
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _isObscured
-                  ? (textPrefix.isNotEmpty ? "$textPrefix ••••••" : "Rp ••••••")
-                  : (textPrefix.isNotEmpty 
-                      ? "$textPrefix ${_formatAmount(amount).replaceFirst('Rp', '').trim()}" 
-                      : _formatAmount(amount)),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: title == 'TOTAL SALDO' 
-                  ? (isDark ? Colors.white : const Color(0xFF0F2015))
-                  : indicatorColor,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 6),
-              subtitle,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   // Doughnut Chart (Distribution of expenses by category)
   Widget _buildDonutChartCard(List<Transaction> transactions, bool isDark) {
-    // Process category data
     final Map<String, double> expensesData = {};
     for (var cat in TransactionProvider.expenseCategories) {
       expensesData[cat] = 0.0;
     }
-    
+
     for (var tx in transactions) {
       if (tx.type == 'expense') {
         expensesData[tx.category] = (expensesData[tx.category] ?? 0.0) + tx.amount;
@@ -673,16 +785,15 @@ class _DashboardTabState extends State<DashboardTab> {
     }
 
     final categoriesWithValues = expensesData.keys.where((cat) => (expensesData[cat] ?? 0.0) > 0.0).toList();
-    
-    // Preset vibrant chart colors
+
     final List<Color> colors = [
-      const Color(0xFFF43F5E), // rose red
-      const Color(0xFF3B82F6), // blue
-      const Color(0xFF10B981), // emerald green
-      const Color(0xFFEAB308), // yellow
-      const Color(0xFFA855F7), // purple
-      const Color(0xFF06B6D4), // cyan
-      const Color(0xFFF97316), // orange
+      const Color(0xFFF43F5E),
+      const Color(0xFF3B82F6),
+      const Color(0xFF10B981),
+      const Color(0xFFEAB308),
+      const Color(0xFFA855F7),
+      const Color(0xFF06B6D4),
+      const Color(0xFFF97316),
     ];
 
     List<PieChartSectionData> sections = [];
@@ -705,7 +816,7 @@ class _DashboardTabState extends State<DashboardTab> {
           color: color,
           value: val,
           radius: 35,
-          showTitle: false, // Don't show text inside slices to stay clean
+          showTitle: false,
         );
       });
     }
@@ -732,7 +843,6 @@ class _DashboardTabState extends State<DashboardTab> {
               ),
             ),
             const SizedBox(height: 16),
-            // Legends
             if (categoriesWithValues.isNotEmpty)
               Wrap(
                 spacing: 12,
@@ -765,7 +875,6 @@ class _DashboardTabState extends State<DashboardTab> {
 
   // Bar Chart (Monthly income vs monthly expense comparison for the last 6 months)
   Widget _buildBarChartCard(List<Transaction> transactions, bool isDark) {
-    // Process monthly data
     final Map<String, Map<String, double>> monthlyMap = {};
     for (var tx in transactions) {
       final m = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";
@@ -784,7 +893,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
     final List<String> monthShorts = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
     final List<BarChartGroupData> barGroups = [];
-    
+
     for (int i = 0; i < displayMonths.length; i++) {
       final m = displayMonths[i];
       final incomeVal = monthlyMap[m]!['income'] ?? 0.0;
@@ -796,13 +905,13 @@ class _DashboardTabState extends State<DashboardTab> {
           barRods: [
             BarChartRodData(
               toY: incomeVal,
-              color: const Color(0xFF10B981), // Income green
+              color: const Color(0xFF10B981),
               width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
             BarChartRodData(
               toY: expenseVal,
-              color: const Color(0xFFF43F5E), // Expense red
+              color: const Color(0xFFF43F5E),
               width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
@@ -861,7 +970,6 @@ class _DashboardTabState extends State<DashboardTab> {
                     ),
             ),
             const SizedBox(height: 16),
-            // Legends
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -884,6 +992,240 @@ class _DashboardTabState extends State<DashboardTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<TransactionProvider>(context);
+    final transactions = provider.transactions;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 1. Calculate Summary Totals
+    double totalIncome = 0;
+    double totalExpense = 0;
+    for (var tx in transactions) {
+      if (tx.type == 'income') {
+        totalIncome += tx.amount;
+      } else {
+        totalExpense += tx.amount;
+      }
+    }
+    double balance = provider.initialBalance + totalIncome - totalExpense;
+
+    // 2. Calculate Current Month Expenses for Budget
+    final now = DateTime.now();
+    double currentMonthExpenses = 0.0;
+    for (var tx in transactions) {
+      if (tx.type == 'expense') {
+        final txYearMonth = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";
+        final currentYearMonth = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+        if (txYearMonth == currentYearMonth) {
+          currentMonthExpenses += tx.amount;
+        }
+      }
+    }
+
+    // 3. Calculate if previous month has transactions
+    final prevMonth = now.month == 1 ? 12 : now.month - 1;
+    final prevYear = now.month == 1 ? now.year - 1 : now.year;
+    final hasPrevMonthTxs = transactions.any((tx) => tx.date.month == prevMonth && tx.date.year == prevYear);
+
+    final wrappedTitle = hasPrevMonthTxs
+        ? 'Recap Keuangan Bulan Lalu Lo Udah Ready! ✨'
+        : 'Intip Preview Financial Wrapped Lo! 🎁';
+    final wrappedSub = hasPrevMonthTxs
+        ? 'Cek statistik seru, gaya belanja, dan persona finansial lo.'
+        : 'Mulai catat transaksi bulan ini untuk Wrapped penuh bulan depan!';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Ringkasan Finansial',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? const Color(0xFFCBDCD0) : const Color(0xFF2D4236),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _isObscured ? Icons.visibility_off : Icons.visibility,
+                  color: const Color(0xFF10B981),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isObscured = !_isObscured;
+                  });
+                },
+                tooltip: _isObscured ? 'Tampilkan Nominal' : 'Sembunyikan Nominal',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Financial Wrapped Banner (Only shown during the first 3 days of the month)
+          if (now.day <= 3) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WrappedScreen()),
+                );
+              },
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                clipBehavior: Clip.antiAlias,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Text('🎁 ', style: TextStyle(fontSize: 10)),
+                                      Text(
+                                        'FINANCIAL WRAPPED',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              wrappedTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              wrappedSub,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.85),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Color(0xFF7C3AED),
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Summary Cards (mobile: column)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Total Saldo Card with edit + reset
+              _buildSummaryCard(
+                'TOTAL SALDO',
+                balance,
+                const Color(0xFF10B981),
+                isDark,
+                subtitle: !provider.isInitialBalanceSet
+                    ? Row(
+                        children: [
+                          Text(
+                            "Saldo Awal: ${_isObscured ? 'Rp ••••••' : _formatAmount(provider.initialBalance)}",
+                            style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54),
+                          ),
+                        ],
+                      )
+                    : null,
+                onEdit: !provider.isInitialBalanceSet
+                    ? () => _showEditInitialBalanceDialog(context, provider)
+                    : null,
+                onReset: provider.isInitialBalanceSet
+                    ? () => _showResetBalanceConfirmDialog(context, provider)
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              _buildSummaryCard('PEMASUKAN', totalIncome, const Color(0xFF10B981), isDark, textPrefix: '+'),
+              const SizedBox(height: 12),
+              _buildSummaryCard('PENGELUARAN', totalExpense, const Color(0xFFF43F5E), isDark, textPrefix: '-'),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Budget Limit Card (card-style like Total Saldo)
+          _buildBudgetCard(context, provider, currentMonthExpenses, isDark),
+          const SizedBox(height: 12),
+
+          // Category Budget Section (hidden by default, revealed by toggle)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) {
+              return SizeTransition(sizeFactor: animation, child: child);
+            },
+            child: _showCategoryBudgets
+                ? Padding(
+                    key: const ValueKey('catBudgets'),
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildCategoryBudgetSection(context, provider, transactions, isDark),
+                  )
+                : const SizedBox.shrink(key: ValueKey('catBudgetsHidden')),
+          ),
+          const SizedBox(height: 12),
+
+          // Charts
+          _buildDonutChartCard(transactions, isDark),
+          const SizedBox(height: 16),
+          _buildBarChartCard(transactions, isDark),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

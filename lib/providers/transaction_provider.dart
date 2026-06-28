@@ -12,13 +12,15 @@ class TransactionProvider with ChangeNotifier {
   Map<String, double> _categoryBudgets = {};
 
   // Categories definition
-  static const List<String> incomeCategories = ['Gaji', 'Lain-lain'];
+  static const List<String> incomeCategories = ['Gaji', 'Investasi', 'Lain-lain'];
   static const List<String> expenseCategories = [
-    'Makanan/Minuman',
+    'Makan',
+    'Jajan',
+    'Langganan',
+    'Mobilitas',
+    'Kuota/Wifi',
     'Hiburan',
-    'Tagihan',
-    'Belanja',
-    'Lain-lain'
+    'Lain-lain',
   ];
 
   List<Transaction> get transactions => _transactions;

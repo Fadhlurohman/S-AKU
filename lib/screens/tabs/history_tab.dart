@@ -304,21 +304,45 @@ class _HistoryTabState extends State<HistoryTab> {
                       date: editDate,
                     );
                     Navigator.of(context).pop();
-                    await provider.updateTransaction(updatedTx);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Transaksi berhasil diperbarui.'),
-                          backgroundColor: Color(0xFF10B981),
-                        ),
-                      );
+                    // Confirmation before saving
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Konfirmasi Edit'),
+                        content: const Text('Simpan perubahan transaksi ini?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Simpan'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true && context.mounted) {
+                      await provider.updateTransaction(updatedTx);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Transaksi berhasil diperbarui.'),
+                            backgroundColor: Color(0xFF10B981),
+                          ),
+                        );
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Simpan'),
+                  child: const Text('Lanjut'),
                 ),
               ],
             );
@@ -373,10 +397,6 @@ class _HistoryTabState extends State<HistoryTab> {
     // Sort by date descending
     filteredTransactions.sort((a, b) => b.date.compareTo(a.date));
 
-    // Screen responsiveness
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 768;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -394,237 +414,94 @@ class _HistoryTabState extends State<HistoryTab> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 12),
-                  // Search Bar + Type Filter + Category Filter Row/Column
-                  isDesktop
-                      ? Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  labelText: 'Cari deskripsi / kategori...',
-                                  hintText: 'Contoh: Makan siang',
-                                  prefixIcon: const Icon(Icons.search, color: Color(0xFF10B981)),
-                                  suffixIcon: _searchQuery.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear),
-                                          onPressed: () {
-                                            _searchController.clear();
-                                            setState(() {
-                                              _searchQuery = '';
-                                            });
-                                          },
-                                        )
-                                      : null,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                ),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _searchQuery = val;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedType,
-                                decoration: InputDecoration(
-                                  labelText: 'Tipe',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                ),
-                                items: const [
-                                  DropdownMenuItem(value: 'all', child: Text('Semua Tipe')),
-                                  DropdownMenuItem(value: 'income', child: Text('Pemasukan')),
-                                  DropdownMenuItem(value: 'expense', child: Text('Pengeluaran')),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedType = val ?? 'all';
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedCategory,
-                                decoration: InputDecoration(
-                                  labelText: 'Kategori',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                ),
-                                items: [
-                                  const DropdownMenuItem(value: 'all', child: Text('Semua Kategori')),
-                                  ...allCategories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedCategory = val ?? 'all';
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                labelText: 'Cari deskripsi / kategori...',
-                                prefixIcon: const Icon(Icons.search, color: Color(0xFF10B981)),
-                                suffixIcon: _searchQuery.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.clear),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          setState(() {
-                                            _searchQuery = '';
-                                          });
-                                        },
-                                      )
-                                    : null,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                              ),
-                              onChanged: (val) {
-                                setState(() {
-                                    _searchQuery = val;
-                                });
+                  // Search Bar
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Cari deskripsi / kategori...',
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF10B981)),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() { _searchQuery = ''; });
                               },
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedType,
-                                    isExpanded: true,
-                                    decoration: InputDecoration(
-                                      labelText: 'Tipe',
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(value: 'all', child: Text('Semua', overflow: TextOverflow.ellipsis)),
-                                      DropdownMenuItem(value: 'income', child: Text('Masuk', overflow: TextOverflow.ellipsis)),
-                                      DropdownMenuItem(value: 'expense', child: Text('Keluar', overflow: TextOverflow.ellipsis)),
-                                    ],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _selectedType = val ?? 'all';
-                                      });
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: DropdownButtonFormField<String>(
-                                    value: _selectedCategory,
-                                    isExpanded: true,
-                                    decoration: InputDecoration(
-                                      labelText: 'Kategori',
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
-                                    ),
-                                    items: [
-                                      const DropdownMenuItem(value: 'all', child: Text('Semua', overflow: TextOverflow.ellipsis)),
-                                      ...allCategories.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))),
-                                    ],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _selectedCategory = val ?? 'all';
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
+                            )
+                          : null,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                    ),
+                    onChanged: (val) { setState(() { _searchQuery = val; }); },
+                  ),
+                  const SizedBox(height: 12),
+                  // Type & Category Filters
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedType,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Tipe',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'all', child: Text('Semua', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'income', child: Text('Masuk', overflow: TextOverflow.ellipsis)),
+                            DropdownMenuItem(value: 'expense', child: Text('Keluar', overflow: TextOverflow.ellipsis)),
                           ],
+                          onChanged: (val) { setState(() { _selectedType = val ?? 'all'; }); },
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedCategory,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Kategori',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+                          ),
+                          items: [
+                            const DropdownMenuItem(value: 'all', child: Text('Semua', overflow: TextOverflow.ellipsis)),
+                            ...allCategories.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))),
+                          ],
+                          onChanged: (val) { setState(() { _selectedCategory = val ?? 'all'; }); },
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   // Month and Date Range Pickers
-                  isDesktop
-                      ? Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedMonth,
-                                decoration: InputDecoration(
-                                  labelText: 'Bulan (Tren)',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                ),
-                                items: [
-                                  const DropdownMenuItem(value: 'all', child: Text('Semua Bulan')),
-                                  ...uniqueMonths.map((m) {
-                                    final parts = m.split('-');
-                                    final monthInt = int.parse(parts[1]);
-                                    final yearStr = parts[0];
-                                    final monthNames = [
-                                      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                                      "Juli", "Agustus", "September", "Okt", "November", "Desember"
-                                    ];
-                                    final label = "${monthNames[monthInt - 1]} $yearStr";
-                                    return DropdownMenuItem(value: m, child: Text(label));
-                                  }),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedMonth = val ?? 'all';
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Date Range Picker button
-                            Expanded(
-                              child: _buildDateRangeSelector(context),
-                            ),
-                          ],
-                        )
-                      : SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              DropdownButtonFormField<String>(
-                                value: _selectedMonth,
-                                isExpanded: true,
-                                decoration: InputDecoration(
-                                  labelText: 'Bulan (Tren)',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                                ),
-                                items: [
-                                  const DropdownMenuItem(value: 'all', child: Text('Semua Bulan')),
-                                  ...uniqueMonths.map((m) {
-                                    final parts = m.split('-');
-                                    final monthInt = int.parse(parts[1]);
-                                    final yearStr = parts[0];
-                                    final monthNames = [
-                                      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                                      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-                                    ];
-                                    final label = "${monthNames[monthInt - 1]} $yearStr";
-                                    return DropdownMenuItem(value: m, child: Text(label));
-                                  }),
-                                ],
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedMonth = val ?? 'all';
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              _buildDateRangeSelector(context),
-                            ],
-                          ),
-                        ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedMonth,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Bulan',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: 'all', child: Text('Semua Bulan')),
+                      ...uniqueMonths.map((m) {
+                        final parts = m.split('-');
+                        final monthInt = int.parse(parts[1]);
+                        final yearStr = parts[0];
+                        final monthNames = [
+                          "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                          "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+                        ];
+                        final label = "${monthNames[monthInt - 1]} $yearStr";
+                        return DropdownMenuItem(value: m, child: Text(label));
+                      }),
+                    ],
+                    onChanged: (val) { setState(() { _selectedMonth = val ?? 'all'; }); },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDateRangeSelector(context),
                 ],
               ),
             ),
@@ -632,8 +509,8 @@ class _HistoryTabState extends State<HistoryTab> {
           const SizedBox(height: 16),
           // Transactions List Panel
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: isDesktop ? 600 : 450,
+            constraints: const BoxConstraints(
+              maxHeight: 480,
             ),
             child: Card(
               child: Padding(
@@ -648,13 +525,39 @@ class _HistoryTabState extends State<HistoryTab> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Text(
+                            'Transaksi (${filteredTransactions.length})',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                'Transaksi (${filteredTransactions.length})',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              const SizedBox(width: 8),
+                              // Badge when filters active
+                              if (_searchQuery.isNotEmpty ||
+                                  _selectedCategory != 'all' ||
+                                  _selectedType != 'all' ||
+                                  _selectedMonth != 'all' ||
+                                  _startDate != null ||
+                                  _endDate != null) ...[
+                                ActionChip(
+                                  label: const Text('Reset Filter', style: TextStyle(fontSize: 11, color: Colors.white)),
+                                  backgroundColor: const Color(0xFFF43F5E),
+                                  side: BorderSide.none,
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchQuery = '';
+                                      _selectedCategory = 'all';
+                                      _selectedType = 'all';
+                                      _selectedMonth = 'all';
+                                      _startDate = null;
+                                      _endDate = null;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                              ],
                               IconButton(
                                 icon: const Icon(Icons.print, size: 18, color: Color(0xFF10B981)),
                                 onPressed: () {
@@ -664,30 +567,6 @@ class _HistoryTabState extends State<HistoryTab> {
                               ),
                             ],
                           ),
-                          // Optional badge for filters active
-                          if (_searchQuery.isNotEmpty ||
-                              _selectedCategory != 'all' ||
-                              _selectedType != 'all' ||
-                              _selectedMonth != 'all' ||
-                              _startDate != null ||
-                              _endDate != null)
-                            ActionChip(
-                              label: const Text('Reset Filter', style: TextStyle(fontSize: 11, color: Colors.white)),
-                              backgroundColor: const Color(0xFFF43F5E),
-                              side: BorderSide.none,
-                              padding: EdgeInsets.zero,
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                  _selectedCategory = 'all';
-                                  _selectedType = 'all';
-                                  _selectedMonth = 'all';
-                                  _startDate = null;
-                                  _endDate = null;
-                                });
-                              },
-                            ),
                         ],
                       ),
                     ),
@@ -695,9 +574,7 @@ class _HistoryTabState extends State<HistoryTab> {
                     Flexible(
                       child: filteredTransactions.isEmpty
                           ? _buildEmptyState()
-                          : isDesktop
-                              ? _buildDesktopTable(provider, filteredTransactions)
-                              : _buildMobileListView(provider, filteredTransactions),
+                          : _buildMobileListView(provider, filteredTransactions),
                     ),
                   ],
                 ),
@@ -790,108 +667,7 @@ class _HistoryTabState extends State<HistoryTab> {
     );
   }
 
-  // Desktop Responsive Table Layout
-  Widget _buildDesktopTable(TransactionProvider provider, List<Transaction> list) {
-    final verticalController = ScrollController();
-    final horizontalController = ScrollController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scrollbarColor = isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.15);
 
-    return RawScrollbar(
-      controller: verticalController,
-      thumbColor: scrollbarColor,
-      radius: const Radius.circular(4),
-      thickness: 4.0,
-      child: SingleChildScrollView(
-        controller: verticalController,
-        scrollDirection: Axis.vertical,
-        child: RawScrollbar(
-          controller: horizontalController,
-          thumbColor: scrollbarColor,
-          radius: const Radius.circular(4),
-          thickness: 4.0,
-          child: SingleChildScrollView(
-            controller: horizontalController,
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 700),
-              child: DataTable(
-                columnSpacing: 24.0,
-                horizontalMargin: 16.0,
-                columns: const [
-                  DataColumn(label: Text('Tanggal', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Kategori', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Deskripsi', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Nominal', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Aksi', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                rows: list.map((tx) {
-                  final isIncome = tx.type == 'income';
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(_dateFormat.format(tx.date))),
-                      DataCell(
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isIncome 
-                                ? const Color(0xFF10B981).withOpacity(0.1) 
-                                : const Color(0xFFF43F5E).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isIncome 
-                                  ? const Color(0xFF10B981).withOpacity(0.2) 
-                                  : const Color(0xFFF43F5E).withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            tx.category,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(tx.description)),
-                      DataCell(
-                        Text(
-                          "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isIncome ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined, color: Color(0xFF10B981), size: 20),
-                              onPressed: () => _showEditTransactionDialog(provider, tx),
-                              tooltip: 'Edit Transaksi',
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Color(0xFFF43F5E), size: 20),
-                              onPressed: () => _deleteTransaction(provider, tx),
-                              tooltip: 'Hapus Transaksi',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // Mobile Responsive ListView Layout
   Widget _buildMobileListView(TransactionProvider provider, List<Transaction> list) {
@@ -929,35 +705,20 @@ class _HistoryTabState extends State<HistoryTab> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Middle: description, date, category
+                // Middle: description, date + category + amount
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Row 1: description + nominal
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              tx.description,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            "${isIncome ? '+' : '-'} ${_formatAmount(tx.amount).replaceFirst('Rp ', '').trim()}",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: accentColor,
-                            ),
-                          ),
-                        ],
+                      // Row 1: description (full width)
+                      Text(
+                        tx.description,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      // Row 2: date + category chip
+                      const SizedBox(height: 3),
+                      // Row 2: date + category chip + amount (next to category)
                       Row(
                         children: [
                           Text(
@@ -980,30 +741,61 @@ class _HistoryTabState extends State<HistoryTab> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              "${isIncome ? '+' : '-'}${_formatAmount(tx.amount).replaceFirst('Rp', '').trim()}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                                color: accentColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                // Trailing: action buttons
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit_outlined, color: const Color(0xFF10B981).withOpacity(0.85), size: 19),
-                      onPressed: () => _showEditTransactionDialog(provider, tx),
-                      tooltip: 'Edit',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete_outline, color: const Color(0xFFF43F5E).withOpacity(0.85), size: 19),
-                      onPressed: () => _deleteTransaction(provider, tx),
-                      tooltip: 'Hapus',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    ),
-                  ],
+                // Trailing: 3-dot menu only
+                SizedBox(
+                  height: 36,
+                  width: 36,
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Aksi',
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditTransactionDialog(provider, tx);
+                      } else if (value == 'delete') {
+                        _deleteTransaction(provider, tx);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 16, color: Color(0xFF10B981)),
+                            SizedBox(width: 10),
+                            Text('Edit', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 16, color: Color(0xFFF43F5E)),
+                            SizedBox(width: 10),
+                            Text('Hapus', style: TextStyle(fontSize: 13, color: Color(0xFFF43F5E))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

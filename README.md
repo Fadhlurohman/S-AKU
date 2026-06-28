@@ -1,104 +1,85 @@
-﻿<p align="center">
-  <img src="assets/images/logo.png" alt="DompetGweh Logo" width="150" />
+<p align="center">
+  <img src="assets/images/logo.png" alt="DompetGweh Logo" width="120" />
 </p>
 
-<h1 align="center">DompetGweh</h1>
+<h1 align="center">DompetGweh 💸</h1>
 
 <p align="center">
   <i>"Catat masuknya dikit, keluarnya banyak."</i>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versi-1.1.0-10B981?style=flat-square" alt="Versi 1.1.0" />
-  <img src="https://img.shields.io/badge/platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android" />
-  <img src="https://img.shields.io/badge/Flutter-3.19-54C5F8?style=flat-square&logo=flutter&logoColor=white" alt="Flutter" />
-  <img src="https://img.shields.io/badge/offline--first-✓-10B981?style=flat-square" alt="Offline First" />
+  <img src="https://img.shields.io/badge/versi-1.2.0-10B981?style=flat-square" />
+  <img src="https://img.shields.io/badge/platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white" />
+  <img src="https://img.shields.io/badge/offline--first-%E2%9C%93-10B981?style=flat-square" />
 </p>
 
-**DompetGweh** adalah aplikasi pencatatan keuangan pribadi modern berbasis **Flutter** yang didesain khusus untuk pengguna **Android** dan **iOS**, dengan dukungan platform **Web** & **Windows** untuk pengujian dan pengembangan secara lokal.
+---
 
-DompetGweh membantu Anda melacak keuangan harian secara mandiri, aman (offline-first), dan dengan antarmuka yang sangat nyaman di mata.
+## Apaan sih ini?
+
+**DompetGweh** adalah aplikasi catat keuangan pribadi buat lo yang pengen tau duit lo lari kemana — tanpa ribet, tanpa internet, dan tanpa drama. Murni offline, ringan, dan tampilannya nggak bikin mata sakit.
+
+Cocok banget buat lo yang sering ngerasa *"kok duit gue abis ya padahal baru gajian"* 💀
 
 ---
 
-## ✨ Fitur Unggulan
+## Fitur yang Ada ✨
 
-* **💰 Set Saldo Awal Sesuka Anda**
-  Mulailah pencatatan dari nol (`Rp 0`) atau sesuaikan saldo awal Anda kapan saja langsung dari dashboard utama sesuai dengan kondisi riil dompet Anda.
+**💰 Catat Pemasukan & Pengeluaran**
+Tinggal input nominal, pilih kategori, kasih catatan. Selesai. Simpel banget.
 
-* **👁️ Mode Samaran (Hide/Show Nominal)**
-  Privasi Anda terjaga sepenuhnya. Sembunyikan nominal Saldo Utama, Pemasukan, Pengeluaran, dan Anggaran Anda menjadi `Rp ••••••` hanya dengan satu ketukan ikon mata toggle.
+**🎯 Budget Bulanan & Per Kategori**
+Set batas pengeluaran lo biar nggak jebol. Ada indikator warna biar lo langsung tau statusnya — hijau aman, merah bahaya.
 
-* **🎯 Anggaran Global & Per Kategori**
-  Tetapkan anggaran bulanan secara global maupun per kategori pengeluaran. Sinyal warna visual (**Hijau / Jingga / Merah**) membantu Anda tetap terkontrol dan terhindar dari kebobolan.
+**📊 Grafik & Diagram**
+Liat distribusi pengeluaran lo lewat donat chart dan grafik tren bulanan. Biar lo ngerasa kayak orang dewasa yang dewasa 🧑‍💼
 
-* **📊 Visualisasi Keuangan Interaktif**
-  Dapatkan insight keuangan instan melalui diagram donat distribusi kategori pengeluaran dan grafik tren bulanan yang premium.
+**🎁 Financial Wrapped**
+Ala-ala Spotify Wrapped tapi versi dompet lo. Muncul tiap awal bulan, recap keuangan lo bulan lalu secara dramatis plus kasih tau persona belanja lo (*The Foodie* 🍜, *Subscription Addict* 📱, dll.). Bisa di-share juga!
 
-* **🖨️ Cetak & Bagikan Riwayat Instan**
-  Cetak laporan PDF langsung dari perangkat mobile atau salin ringkasan rapi ke clipboard dalam satu ketukan.
+**👁️ Mode Samaran**
+Sembunyiin semua nominal jadi Rp ••••••  biar nggak ketauan pas lagi di depan orang. Privacy is everything 🤫
 
-* **🎨 Tampilan Warm Mint Light**
-  Nikmati kenyamanan visual dengan latar belakang putih-lembut (`#F5F8F6`) dipadukan aksen warna mint yang segar, tanpa membuat mata lelah.
-
-* **ℹ️ Halaman Tentang Aplikasi**
-  Informasi versi, pembuat, sekilas aplikasi, dan panduan penggunaan tersedia langsung di dalam aplikasi.
+**🖨️ Cetak Laporan PDF**
+Butuh bukti pengeluaran? Langsung cetak jadi PDF dari HP. Profesional banget padahal.
 
 ---
 
-## 🚀 Panduan Instalasi & Pengujian
+## Download Sekarang 📲
 
-### 📥 Unduh Langsung (Android)
+### 🤖 Android
 
-Bagi Anda yang ingin langsung mencoba aplikasi di HP Android tanpa perlu melakukan build manual:
+> Gratis | Offline | ~23 MB
 
-* **Link Download**: **[Unduh DompetGweh v1.1.0 APK (via Diawi)](https://i.diawi.com/r9D7iv)**
-* *Buka tautan di atas melalui browser HP Anda atau pindai (scan) QR Code yang tersedia di halaman tersebut untuk menginstal aplikasi secara instan.*
+### 👉 [Download DompetGweh v1.2.0](https://i.diawi.com/Z3892w)
 
----
-
-### 📱 Build Mandiri (Android & iOS)
-
-* **Android (Build APK)**:
-  ```bash
-  flutter build apk --release
-  ```
-  File instalasi tersedia di:
-  `build/app/outputs/flutter-apk/app-release.apk`
-
-* **iOS**:
-  ```bash
-  flutter build ipa
-  ```
+*Buka link di atas dari browser HP Android lo, atau scan QR Code di halaman tersebut buat langsung install.*
 
 ---
 
-### 💻 Pengujian & Pengembangan Lokal (Web & Windows)
+### 🍎 iOS (iPhone/iPad)
 
-Untuk menjalankan dan mengedit aplikasi di laptop:
+Sayangnya belum ada link install langsung buat iOS, karena build IPA butuh **Mac + Xcode** — dan itu nggak bisa dari Windows 😭
 
-* **Web (Chrome)**:
-  ```bash
-  flutter run -d chrome
-  ```
+Tapi kalau lo pengen tetap nyoba di iPhone, ini caranya:
 
-* **Windows Desktop**:
-  ```bash
-  flutter run -d windows
-  ```
+**1. Lo punya Mac sendiri / punya temen yang punya Mac:**
+```bash
+# Clone / copy project ini ke Mac, lalu jalankan:
+flutter build ipa
+```
+Terus install via **AltStore** atau **Xcode** ke iPhone lo.
+
+**2. Pakai layanan cloud build (gratis):**
+- Upload project ke **[Codemagic](https://codemagic.io)** atau **GitHub Actions** dengan Mac runner
+- Mereka yang build IPA-nya, lo tinggal download hasilnya
+
+**3. Cara paling gampang — pakai TestFlight:**
+Kalau ada yang mau distribute lewat Apple TestFlight, butuh Apple Developer Account ($99/tahun). Agak ribet, tapi ini cara resminya.
+
+> **TLDR**: Kode-nya siap iOS, tapi build-nya butuh Mac. Kalau lo pakai Android, langsung aja download link di atas! 👆
 
 ---
 
-## 📋 Changelog
-
-### v1.1.0 (2026-06-25)
-- ✨ Fitur anggaran per kategori (category budget)
-- ✨ Halaman Tentang Aplikasi (versi, pembuat, tutorial)
-- ✨ Konfirmasi kembali saat formulir ada data yang belum disimpan
-- ✨ Pemisah ribuan otomatis di dialog edit transaksi
-- 🐛 Fix overflow di halaman Riwayat (bottom & right)
-- 🐛 Fix warna teks deprecated (onBackground → onSurface)
-- 🐛 Fix PDF font fallback untuk kondisi offline
-
-### v1.0.0 (2026-06-24)
-- 🎉 Rilis pertama
+<p align="center">Made with ☕ & Flutter &nbsp;|&nbsp; <b>DompetGweh v1.2.0</b></p>

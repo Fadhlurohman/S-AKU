@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutTab extends StatefulWidget {
@@ -9,7 +9,7 @@ class AboutTab extends StatefulWidget {
 }
 
 class _AboutTabState extends State<AboutTab> {
-  String _version = '1.1.0';
+  String _version = '1.2.0';
 
   @override
   void initState() {
@@ -84,7 +84,7 @@ class _AboutTabState extends State<AboutTab> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildInfoTile(context, icon: Icons.person_outline, label: 'Pembuat', value: 'Navin', isDark: isDark)),
+              Expanded(child: _buildInfoTile(context, icon: Icons.person_outline, label: 'Developer', value: 'Navin', isDark: isDark)),
               const SizedBox(width: 12),
               Expanded(child: _buildInfoTile(context, icon: Icons.tag, label: 'Versi', value: 'v$_version', isDark: isDark)),
             ],
