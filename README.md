@@ -50,7 +50,7 @@ Butuh bukti pengeluaran? Langsung cetak jadi PDF dari HP. Profesional banget pad
 
 > Gratis | Offline | ~23 MB
 
-### 👉 [Download S-AKU v1.2.0](https://i.diawi.com/VEGqz3)
+### 👉 [Download S-AKU v1.2.0](https://i.diawi.com/zo13ng)
 
 *Buka link di atas dari browser HP Android lo, atau scan QR Code di halaman tersebut buat langsung install.*
 
