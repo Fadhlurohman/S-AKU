@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
         colors: [Color(0xFF10B981), Color(0xFFF43F5E)],
       ).createShader(Offset.zero & bounds.size),
       child: const Text(
-        'DompetGweh',
+        'S-AKU',
         style: TextStyle(
           fontWeight: FontWeight.w900,
           fontSize: 18,
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo.png',
                     height: 38,
                     width: 38,
                     fit: BoxFit.contain,

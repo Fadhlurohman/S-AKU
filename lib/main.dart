@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
     const lightCardColor = Color(0xFFFFFFFF); // White Card
 
     return MaterialApp(
-      title: 'DompetGweh',
+      title: 'S-AKU',
       debugShowCheckedModeBanner: false,
       themeMode: context.watch<TransactionProvider>().themeMode,
       

@@ -37,7 +37,7 @@ class _AboutTabState extends State<AboutTab> {
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(24),
-            child: Image.asset('assets/images/logo.png', height: 90, width: 90, fit: BoxFit.contain),
+            child: Image.asset(isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo.png', height: 90, width: 90, fit: BoxFit.contain),
           ),
           const SizedBox(height: 14),
           ShaderMask(
@@ -45,7 +45,7 @@ class _AboutTabState extends State<AboutTab> {
               colors: [Color(0xFF10B981), Color(0xFFF43F5E)],
             ).createShader(Offset.zero & bounds.size),
             child: const Text(
-              'DompetGweh',
+              'S-AKU',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: Colors.white, letterSpacing: -0.5),
             ),
           ),
@@ -61,7 +61,7 @@ class _AboutTabState extends State<AboutTab> {
             icon: Icons.info_outline,
             title: 'Sekilas Aplikasi',
             child: Text(
-              'DompetGweh adalah aplikasi pencatatan keuangan pribadi yang ringan, modern, dan bekerja sepenuhnya offline. '
+              'S-AKU adalah aplikasi pencatatan keuangan pribadi yang ringan, modern, dan bekerja sepenuhnya offline. '
               'Dirancang agar mudah digunakan oleh siapa saja untuk memantau pemasukan, pengeluaran, dan anggaran bulanan.',
               style: TextStyle(fontSize: 13, height: 1.6, color: subtitleColor),
             ),
@@ -84,7 +84,7 @@ class _AboutTabState extends State<AboutTab> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildInfoTile(context, icon: Icons.person_outline, label: 'Developer', value: 'Navin', isDark: isDark)),
+              Expanded(child: _buildInfoTile(context, icon: Icons.person_outline, label: 'Developer', value: 'navntn', isDark: isDark)),
               const SizedBox(width: 12),
               Expanded(child: _buildInfoTile(context, icon: Icons.tag, label: 'Versi', value: 'v$_version', isDark: isDark)),
             ],

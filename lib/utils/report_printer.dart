@@ -93,7 +93,7 @@ void printReport(List<Transaction> transactions) async {
         return [
           // Title
           pw.Text(
-            'DompetGweh',
+            'S-AKU',
             style: pw.TextStyle(
               fontSize: 24,
               fontWeight: pw.FontWeight.bold,
@@ -150,7 +150,7 @@ void printReport(List<Transaction> transactions) async {
 
   await Printing.layoutPdf(
     onLayout: (format) async => pdf.save(),
-    name: 'Laporan_DompetGweh_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+    name: 'Laporan_S-AKU_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
   );
 }
 
@@ -253,7 +253,7 @@ void printMonthlyWrappedReport({
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      'DompetGweh - Monthly Wrapped',
+                      'S-AKU - Recap Bulanan',
                       style: pw.TextStyle(
                         fontSize: 22,
                         fontWeight: pw.FontWeight.bold,
@@ -356,7 +356,7 @@ void printMonthlyWrappedReport({
 
   await Printing.layoutPdf(
     onLayout: (format) async => pdf.save(),
-    name: 'Wrapped_DompetGweh_${monthLabel.replaceAll(' ', '_')}.pdf',
+    name: 'Recap_Bulanan_S-AKU_${monthLabel.replaceAll(' ', '_')}.pdf',
   );
 }
 
@@ -402,6 +402,161 @@ pw.Widget _buildPdfCategoryTable(
       2: const pw.FlexColumnWidth(2),
     },
     children: rows,
+  );
+}
+
+void printDailyRecapReport({
+  required String title,
+  required List<Transaction> transactions,
+}) async {
+  final formatCurrency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final now = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(DateTime.now());
+
+  pw.Font? fontRegular, fontBold, fontItalic;
+  try {
+    fontRegular = await PdfGoogleFonts.nunitoRegular();
+    fontBold = await PdfGoogleFonts.nunitoBold();
+    fontItalic = await PdfGoogleFonts.nunitoItalic();
+  } catch (_) {}
+
+  const green = PdfColor.fromInt(0xFF10B981);
+  const red = PdfColor.fromInt(0xFFF43F5E);
+  const headerBg = PdfColor.fromInt(0xFFF3F4F6);
+  const textDark = PdfColor.fromInt(0xFF1F2937);
+  const textGrey = PdfColor.fromInt(0xFF6B7280);
+  const borderColor = PdfColor.fromInt(0xFFE5E7EB);
+
+  // Group transactions by "YYYY-MM-DD"
+  final Map<String, List<Transaction>> byDay = {};
+  for (final tx in transactions) {
+    final key = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}-${tx.date.day.toString().padLeft(2, '0')}";
+    byDay.putIfAbsent(key, () => []).add(tx);
+  }
+
+  final sortedKeys = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
+
+  final pdf = pw.Document();
+  final theme = fontRegular != null
+      ? pw.ThemeData.withFont(
+          base: fontRegular,
+          bold: fontBold,
+          italic: fontItalic,
+        )
+      : pw.ThemeData();
+
+  pdf.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      theme: theme,
+      build: (context) {
+        return [
+          // Header
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'S-AKU - Daily Recap',
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                      color: green,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    title,
+                    style: pw.TextStyle(fontSize: 12, color: textGrey),
+                  ),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    'Dicetak pada:',
+                    style: pw.TextStyle(fontSize: 8, color: textGrey),
+                  ),
+                  pw.Text(
+                    now,
+                    style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: textDark),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 15),
+          pw.Divider(color: borderColor, height: 1),
+          pw.SizedBox(height: 20),
+
+          // Daily Recap Table
+          pw.Table(
+            border: pw.TableBorder.all(color: borderColor, width: 0.5),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(3), // Date
+              1: const pw.FlexColumnWidth(1.2), // Count
+              2: const pw.FlexColumnWidth(2.5), // Total In
+              3: const pw.FlexColumnWidth(2.5), // Total Out
+              4: const pw.FlexColumnWidth(2.5), // Net
+            },
+            children: [
+              // Header Row
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: headerBg),
+                children: [
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Tanggal', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold))),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Transaksi', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pemasukan', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Pengeluaran', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Selisih (Net)', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                ],
+              ),
+              // Data Rows
+              ...sortedKeys.map((dateKey) {
+                final txs = byDay[dateKey]!;
+                final sampleDate = txs.first.date;
+                final dateStr = DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(sampleDate);
+
+                double totalIn = 0, totalOut = 0;
+                for (final tx in txs) {
+                  if (tx.type == 'income') {
+                    totalIn += tx.amount;
+                  } else {
+                    totalOut += tx.amount;
+                  }
+                }
+                final net = totalIn - totalOut;
+
+                return pw.TableRow(
+                  children: [
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(dateStr, style: const pw.TextStyle(fontSize: 8))),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('${txs.length}', style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.center)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatCurrency.format(totalIn), style: pw.TextStyle(fontSize: 8, color: green, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatCurrency.format(totalOut), style: pw.TextStyle(fontSize: 8, color: red, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        '${net >= 0 ? '+' : ''}${formatCurrency.format(net)}',
+                        style: pw.TextStyle(fontSize: 8, color: net >= 0 ? green : red, fontWeight: pw.FontWeight.bold),
+                        textAlign: pw.TextAlign.right,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
+          ),
+        ];
+      },
+    ),
+  );
+
+  await Printing.layoutPdf(
+    onLayout: (format) async => pdf.save(),
+    name: 'Rekap_Harian_${title.replaceAll(' ', '_')}.pdf',
   );
 }
 

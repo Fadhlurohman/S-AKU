@@ -5,7 +5,6 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../providers/transaction_provider.dart';
 import '../../models/transaction_model.dart';
 import '../../utils/formatters.dart';
-import '../wrapped_screen.dart';
 
 class DashboardTab extends StatefulWidget {
   const DashboardTab({super.key});
@@ -1048,17 +1047,6 @@ class _DashboardTabState extends State<DashboardTab> {
       }
     }
 
-    // 3. Calculate if previous month has transactions
-    final prevMonth = now.month == 1 ? 12 : now.month - 1;
-    final prevYear = now.month == 1 ? now.year - 1 : now.year;
-    final hasPrevMonthTxs = transactions.any((tx) => tx.date.month == prevMonth && tx.date.year == prevYear);
-
-    final wrappedTitle = hasPrevMonthTxs
-        ? 'Recap Keuangan Bulan Lalu Lo Udah Ready! ✨'
-        : 'Intip Preview Financial Wrapped Lo! 🎁';
-    final wrappedSub = hasPrevMonthTxs
-        ? 'Cek statistik seru, gaya belanja, dan persona finansial lo.'
-        : 'Mulai catat transaksi bulan ini untuk Wrapped penuh bulan depan!';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -1095,98 +1083,6 @@ class _DashboardTabState extends State<DashboardTab> {
           ),
           const SizedBox(height: 8),
 
-          // Financial Wrapped Banner (Only shown during the first 3 days of the month)
-          if (now.day <= 3) ...[
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WrappedScreen()),
-                );
-              },
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                clipBehavior: Clip.antiAlias,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFFEC4899)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Text('🎁 ', style: TextStyle(fontSize: 10)),
-                                      Text(
-                                        'FINANCIAL WRAPPED',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              wrappedTitle,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              wrappedSub,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.85),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Color(0xFF7C3AED),
-                          size: 22,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
 
           // Summary Cards
           Column(

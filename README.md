@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/images/logo.png" alt="DompetGweh Logo" width="120" />
+  <img src="assets/images/logo.png" alt="S-AKU Logo" width="120" />
 </p>
 
-<h1 align="center">DompetGweh 💸</h1>
+<h1 align="center">S-AKU 💸</h1>
 
 <p align="center">
   <i>"Catat masuknya dikit, keluarnya banyak."</i>
@@ -18,7 +18,7 @@
 
 ## Apaan sih ini?
 
-**DompetGweh** adalah aplikasi catat keuangan pribadi buat lo yang pengen tau duit lo lari kemana — tanpa ribet, tanpa internet, dan tanpa drama. Murni offline, ringan, dan tampilannya nggak bikin mata sakit.
+**S-AKU** adalah aplikasi catat keuangan pribadi buat lo yang pengen tau duit lo lari kemana — tanpa ribet, tanpa internet, dan tanpa drama. Murni offline, ringan, dan tampilannya nggak bikin mata sakit.
 
 Cocok banget buat lo yang sering ngerasa *"kok duit gue abis ya padahal baru gajian"* 💀
 
@@ -35,8 +35,8 @@ Set batas pengeluaran lo biar nggak jebol. Ada indikator warna biar lo langsung 
 **📊 Grafik & Diagram**
 Liat distribusi pengeluaran lo lewat donat chart dan grafik tren bulanan. Biar lo ngerasa kayak orang dewasa yang dewasa 🧑‍💼
 
-**🎁 Financial Wrapped**
-Ala-ala Spotify Wrapped tapi versi dompet lo. Muncul tiap awal bulan, recap keuangan lo bulan lalu secara dramatis plus kasih tau persona belanja lo (*The Foodie* 🍜, *Subscription Addict* 📱, dll.). Bisa di-share juga!
+**📊 Recap Bulanan & Harian**
+Tinjau kembali aktivitas transaksi bulanan lo secara terorganisir. Dilengkapi dengan detail harian per tanggal, analisis surplus/defisit, serta tombol pencetakan laporan PDF yang profesional untuk rekap bulanan maupun harian.
 
 **👁️ Mode Samaran**
 Sembunyiin semua nominal jadi Rp ••••••  biar nggak ketauan pas lagi di depan orang. Privacy is everything 🤫
@@ -52,7 +52,7 @@ Butuh bukti pengeluaran? Langsung cetak jadi PDF dari HP. Profesional banget pad
 
 > Gratis | Offline | ~23 MB
 
-### 👉 [Download DompetGweh v1.2.0](https://i.diawi.com/7uxTWa)
+### 👉 [Download S-AKU v1.2.0](https://i.diawi.com/VEGqz3)
 
 *Buka link di atas dari browser HP Android lo, atau scan QR Code di halaman tersebut buat langsung install.*
 
@@ -82,4 +82,4 @@ Kalau ada yang mau distribute lewat Apple TestFlight, butuh Apple Developer Acco
 
 ---
 
-<p align="center">Made with ☕ & Flutter &nbsp;|&nbsp; <b>DompetGweh v1.2.0</b></p>
+<p align="center">Made with ☕ & Flutter &nbsp;|&nbsp; <b>S-AKU v1.2.0</b></p>

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.dompetgweh" "\0"
-            VALUE "FileDescription", "dompetgweh" "\0"
+            VALUE "CompanyName", "com.s-aku" "\0"
+            VALUE "FileDescription", "S-AKU" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "dompetgweh" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.dompetgweh. All rights reserved." "\0"
-            VALUE "OriginalFilename", "dompetgweh.exe" "\0"
-            VALUE "ProductName", "dompetgweh" "\0"
+            VALUE "InternalName", "s_aku" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.s-aku. All rights reserved." "\0"
+            VALUE "OriginalFilename", "s_aku.exe" "\0"
+            VALUE "ProductName", "S-AKU" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
