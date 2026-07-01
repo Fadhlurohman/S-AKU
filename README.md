@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/images/logo_square.png" alt="S-AKU Logo" width="200" />
+  <img src="assets/images/logo_square_v2.png" alt="S-AKU Logo" width="120" />
 </p>
-
-<h1 align="center">S-AKU</h1>
 
 <p align="center">
   <i>"Catat masuknya dikit, keluarnya banyak."</i>
